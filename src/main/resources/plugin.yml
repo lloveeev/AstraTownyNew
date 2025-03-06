@@ -1,4 +1,4 @@
 name: AstraTowny
 version: '0.1'
-main: dev.loveeev.astraTowny.AstraTowny
+main: dev.loveeev.astratowny.AstraTowny
 api-version: '1.20'
