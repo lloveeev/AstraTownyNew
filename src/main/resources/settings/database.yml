@@ -1,0 +1,29 @@
+
+# TYPE DATABASE sqllite/mysql(mariadb)/postsql
+type: mysql
+
+# SQL database connection details.
+sql:
+  hostname: 'localhost'
+  port: 3306
+  dbname: ''
+  username: ''
+  password: ''
+  table_prefix: 'astra_'
+
+
+# Modifiable settings to control the connection pooling.
+# Unless you actually know what you're doing and how Towny uses its mysql connection,
+# it is strongly recommended you do not change these settings.
+pooling:
+  max_pool_size: 5
+  max_lifetime: 180000
+  connection_timeout: 5000
+  cachePrepStmts: true
+  prepStmtCacheSize: 250
+  prepStmtCacheSqlLimit: 2048
+  useServerPrepStmts: true
+  autoReconnect: true
+  useSSL: false
+  useUnicode: true
+  characterEncoding: utf8
