@@ -1,4 +1,4 @@
-package dev.loveeev.astraTowny
+package dev.loveeev.astratowny
 
 import org.bukkit.plugin.java.JavaPlugin
 
