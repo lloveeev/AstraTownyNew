@@ -1,111 +1,104 @@
-package dev.loveeev.astratowny.database;
+package dev.loveeev.astratowny.database
 
-import dev.loveeev.astraTowny.Core;
-import dev.loveeev.astratowny.config.DatabaseYML;
-import lombok.Getter;
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.config.DatabaseYML
+import java.sql.Connection
+import java.sql.SQLException
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.logging.Level
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.logging.Level;
+object SQL {
 
-public class SQL {
-    private static final MySQL mySQL = MySQL.getInstance();
-    private static final String TYPE = DatabaseYML.getConfig().getString("type");
+    private val TYPE = DatabaseYML.getConfig().getString("type")
+    private var databaseConnection: DatabaseConnection = when (TYPE) {
+        "mysql" -> MySQLConnection()
+        "postgresql" -> PostSQLConnection()
+        "sqlite" -> SQLiteConnection()
+        else -> throw IllegalArgumentException("Unsupported database type: $TYPE")
+    }
 
     // Очередь для запросов
-    private static final BlockingQueue<SQLQuery> queryQueue = new LinkedBlockingQueue<>();
-    private static boolean isProcessing = false;
+    private val queryQueue: BlockingQueue<SQLQuery> = LinkedBlockingQueue()
+    private var isProcessing = false
 
-    // Статический блок для запуска обработчика очереди
-
-    static {
-        startQueryProcessor();
+    // Инициализация подключения к базе данных в зависимости от типа
+    init {
+        startQueryProcessor()
     }
 
     // Класс для хранения запроса и его параметров
-    @Getter
-    public static class SQLQuery {
-        private final String query;
-        private final Object[] params;
+    data class SQLQuery(val query: String, val params: Array<Any?>) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
 
-        public SQLQuery(String query, Object... params) {
-            this.query = query;
-            this.params = params;
+            other as SQLQuery
+
+            if (query != other.query) return false
+            if (!params.contentEquals(other.params)) return false
+
+            return true
         }
 
+        override fun hashCode(): Int {
+            var result = query.hashCode()
+            result = 31 * result + params.contentHashCode()
+            return result
+        }
     }
 
     // Метод для получения соединения
-    public static Connection getCon() throws SQLException {
-        if (Objects.equals(TYPE, "mysql")) {
-            if (mySQL.isConnected()) {
-                return MySQL.getInstance().getConnection();
-            } else {
-                Core.getInstance().getLogger().info("ERROR DATABASE CHANGE database.yml");
-            }
-        }
-        return null;
+    @Throws(SQLException::class)
+    fun getCon(): Connection? {
+        return databaseConnection.getConnection()
     }
 
     // Метод для закрытия соединения
-    public static void closeConnection() {
-        if (Objects.equals(TYPE, "mysql")) {
-            MySQL.getInstance().getDataSource().close();
-        }
+    fun closeConnection() {
+        databaseConnection.close()
     }
 
     // Метод для проверки соединения
-    public static Boolean isCon() {
-        if (DatabaseYML.getConfig().getString("sql.hostname") == null ||
-                DatabaseYML.getConfig().getString("sql.port") == null ||
-                DatabaseYML.getConfig().getString("sql.dbname") == null ||
-                DatabaseYML.getConfig().getString("sql.username") == null) {
-            return false;
-        } else {
-            if (Objects.equals(TYPE, "mysql")) {
-                return mySQL.isConnected();
-            }
-        }
-        return null;
-    }
+    val isCon: Boolean
+        get() = databaseConnection.isConnected()
 
     // Метод для добавления запроса в очередь
-    public static void queueQuery(String query, Object... params) {
-        queryQueue.add(new SQLQuery(query, params));
+    fun queueQuery(query: String, vararg params: Any?) {
+        queryQueue.add(SQLQuery(query, arrayOf(*params)))
     }
 
+
     // Метод для обработки запросов из очереди
-    private static void startQueryProcessor() {
+    private fun startQueryProcessor() {
         if (!isProcessing) {
-            isProcessing = true;
-            new Thread(() -> {
+            isProcessing = true
+            Thread {
                 while (true) {
                     try {
-                        SQLQuery sqlQuery = queryQueue.take(); // Берем запрос из очереди
-                        try (Connection connection = getCon();
-                             PreparedStatement statement = connection.prepareStatement(sqlQuery.getQuery())) {
-                            for (int i = 0; i < sqlQuery.getParams().length; i++) {
-                                statement.setObject(i + 1, sqlQuery.getParams()[i]);
+                        val sqlQuery = queryQueue.take()
+                        try {
+                            getCon()?.use { connection ->
+                                connection.prepareStatement(sqlQuery.query).use { statement ->
+                                    for (i in sqlQuery.params.indices) {
+                                        statement.setObject(i + 1, sqlQuery.params[i])
+                                    }
+                                    statement.executeUpdate()
+                                }
                             }
-                            statement.executeUpdate();
-                        } catch (SQLException ex) {
-                            Core.getInstance().getLogger().log(Level.SEVERE, "Ошибка при выполнении запроса MySQL", ex);
+                        } catch (ex: SQLException) {
+                            AstraTowny.instance.logger.log(Level.SEVERE, "Error executing SQLQuery", ex.errorCode)
                         }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
+                    } catch (e: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break
                     }
                 }
-            }).start();
+            }.start()
         }
     }
 
-    // Пример использования: добавление запроса в очередь
-    public static void executeUpdateAsync(String query, Object... params) {
-        queueQuery(query, params);
+    fun executeUpdateAsync(query: String, vararg params: Any?) {
+        queueQuery(query, *params)
     }
 }

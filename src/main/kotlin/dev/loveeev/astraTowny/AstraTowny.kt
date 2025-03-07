@@ -6,7 +6,6 @@ import dev.loveeev.astratowny.config.TranslateYML
 import org.bukkit.command.TabExecutor
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
-import java.util.*
 
 class AstraTowny : JavaPlugin() {
 

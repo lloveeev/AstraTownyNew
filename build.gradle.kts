@@ -21,7 +21,7 @@ repositories {
     maven("https://repo.mikeprimm.com/") {
         name = "mikeprimm"
     }
-    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/") {
+    maven("https://repo.extendedclip.com/releases/") {
         name = "placeholderapi"
     }
 }
@@ -36,7 +36,7 @@ dependencies {
 
     implementation("com.zaxxer:HikariCP:5.0.1")
 
-    compileOnly("me.clip:placeholderapi:2.11.3")
+    compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("mysql:mysql-connector-java:8.0.33")
 }
 
