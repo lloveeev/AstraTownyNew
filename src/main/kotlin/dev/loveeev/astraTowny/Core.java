@@ -159,12 +159,7 @@ public final class Core extends JavaPlugin {
         new DatabaseYML();
         new TranslateYML();
 
-        for (String lang : ConfigYML.language){
-            File file = new File(getDataFolder(),"translate/" +lang + ".yml");
-            if(!file.exists()) {
-                saveResource("translate/" + lang + ".yml", false);
-            }
-        }
+
     }
     public static void updateCache() {
         // Обновление кеша городов

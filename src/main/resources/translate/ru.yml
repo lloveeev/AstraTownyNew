@@ -1,158 +1,149 @@
-#RUSSIA
-
-messageconsole: "Команда доступна только в игре."
-messagetownexist: "Вы не состоите ни в одном городе."
-commandundefined: "Такой команды не существует."
-createtown: "Для создания города используйте /t create <город>"
-create: "Вами был основан новый город {town} ."
-townalrexist: "Город с таким названием уже существует."
-alrintown: "Вы уже состоите в городе!"
-alrinvitetown: "Игрок уже состоит в городе."
-rank: "Используйте /t rank add/remove <никнейм> <rank>"
-rankg: "Используйте /t rank add/remove/create/delete"
-rankf: "Используйте /t rank create/delete <никнейм <rank>"
-invite: "Используйте /t invite <Никнейм игрока>"
-alrinvite: "Вы уже пригласили данного игрока."
-invitesend: "Приглашение отправлено " #ИГРОК УКАЗАН В КОДЕ
-inviteaprove: "Вы приглашены в " #ГОРОД УКАЗАН В КОДЕ
-playeroffline: "Игрок с таким никнеймом не в сети."
-confirmation: "Нажмите для подтверждения."
-permissionerror: "У вас недостаточно прав для использования данной команды."
-accept: "Используйте /t accept <название города>"
-accepterror: "У вас нет приглашения от этого города/нации."
-acceptconfirm: "Вы присоединились."
-deleteconfirm: "Успешное удаление города."
-leaveconfirm: "Вы успешно покинули город."
-leaveerror: "Вы не можете покинуть город, пока вы являетесь его мэром!"
-claimerror: "Рядом нет чанков принадлежащих вашему городу."
-goldnotenough: "У вас недостаточно золота."
-claimconfirm : "Вы заприватили новый чанк для города."
-alrclaim: "Этот чанк уже принадлежит городу."
+# Общие сообщения
+message_console: "Команда доступна только в игре."
+message_town_exist: "Вы не состоите ни в одном городе."
+command_exit: "Такой команды не существует."
 error: "Ошибка"
-homeblockerror: "Вы не можете расприватить Хоумблок."
-chunkerror: "Этот чанк не является частью города."
-unclaimconfirm: "Вы расприватили чанк города."
-homeblockalr: "Этот чанк уже является Хоумблоком."
-spawnset: "Вы установили новый спавн города."
-homeblockconfirm: "Вы установили новый Хоумблок города."
-nationnull: "Вы не состоите ни в одной нации."
-createnation: "Для создания нации используйте /n create <город>"
-crearenationt: "Для создания нации нужен город!"
-createnationsuc: "Вы основали новую нация {nation}."
-nationalrexist: "Нация с таким названием уже существует."
-nationalr: "Вы уже состоите в нации!"
-townfornation: "Для создания нации нужен город!"
-nationdel: "Вы успешно удалили {nation}"
-nationmayor: "Для создание нации,вы должны быть мэром города."
-asksend: "Вы успешно отправили запрос на вступление всем городам"
-asksendtown: "Вы успешно отправили запрос на вступление в город."
-townexist: "Города с таким названием, не существует."
-no: "нет" #Не имеет в себе replace {town} и других.
-townhasnation: "У города уже есть нация!"
-setname: "Используйте /t set name <название>"
-setnamesuc: "Вы успешно изменили название!"
-setmapcolor: "Используйте /t set mapcolor <цвет>"
-setmapcolorsuc: "Вы сменили цвет на {mapcolor}."
-kickplayer: "Используйте /t kick <Игрок>"
-kicksuc: "Вы успешно изгнали игрока/город"
-playerexist: "Такого игрока не существует."
-playernottown: "Игрок не состоит в вашем городе."
-notkickmayor: "Вы не можете изгнать мэра"
-rankexist: "Такого ранга не существует"
-args: "Недостаточног аргументов"
-rankgivesuc: "Вы успешно выдали ранг."
-rankcombacksuc: "Вы успешно забрали ранг"
-rankalrgive: "У игрока уже есть этот ранг"
-rankalrcomback: "У игрока и так нету этого ранга."
-rankalrexist: "Такой ранг уже существует."
-kicktown: "Используйте /n kick <Город>"
-townnonation: "Город не находиться в вашей нации."
-notkickcapital: "Нельзя изгнать из нации столицу,"
-setnationname: "Используйте /n set <параметр> <название>"
-nationexist: "У вас нету нации."
-changecapital: "Вы успешно сменили столицу"
-suc: "Успешно!"
-succreaterank: "Вы успешно создали новый ранг"
-transfert: "Используйте /t transfer никнейм кому хотите передать права."
-transfern: "Используйте /n transfer город - которому хотите передать нацию"
-transfersuc: "Вы успешно передали права"
-playererror: "Такого игрока не существует."
-kicktownSuccess: "Город усмешно удален."
-residentjoin: "{player} присоединился к городу"
-residentleave: "{player} покинул город."
-townjoin: "К вашей нации присоединился"
-townleave: "Вашу нацию покинул"
-language: "Вы сменили язык на {language}"
-bccreatetown: "Был создан город - {townall}"
-bccreatenation: "Была создана нация - {nationall}"
-bcaddnation: "К вам присоединился новый город "
-bcaddtown: "К вам присоедился новый игрок {player}"
-bcremovenation: "Нацию покинул город - "
-bcremovetown: "Из города вышел - "
-bcremovetownall: "{townall} удален"
-bcremovenationall: "{nationall} удален"
-townnotisnation: "Этот город не принадлежит вашей нации."
-leave: "Используйте /t.n leave"
-capitalerror: "Нельзя покинуть нацию, в которой вы являетесь столицей."
-selfinvite: "Вы не можете пригласить самого себя."
-leavenation: "Вы успешно покинули нацию {nation}"
-alrnation: "У города другая нация!"
-playernotthisnation: "Игрок состоит в другой нации."
-globalChatEnable: "Глобальный включен!"
-localChatEnable: "Локальный чат включен!"
-nationChatEnable: "Национальный чат включен!"
-townyChatEnable: "Городской чат включен!"
-unionChatEnable: "Союзный чат включен!"
-unionChatError: "You are not part of any union."
-nationChatError: "You are not part of any nation."
-townChatError: "You are not part of any town."
-compArmy: "Используйте /t army add/remove resident"
-flagControl: "Используйте /t toggle flag true/false"
-flagSuc: "Вы установили для {flag} - {bool}"
-flagExist: "Такого флага не существует."
-messageCancelBreakPlot: "Вы не можете ломать блоки в этом участке."
-#/t Создавать ввиде листа
-t:
-  - "&#DDA840Информация о городе {town}"
-  - " &#DDA840Мэр: &f{mayor}"
-  - " &#DDA840Нация: &f{nation}"
-  - " &#DDA840Людские ресурсы: &f{town_manpower}"
+permission: "У вас недостаточно прав для использования данной команды."
+money_error: "У вас недостаточно золота."
+player_error: "Такого игрока не существует."
+player_offline: "Игрок с таким никнеймом не в сети."
+args: "Недостаточно аргументов"
 
-#Идентификаторы для списков
-town_residents: "&#DDA840Жители"
-town_ranks: "&#DDA840Звания"
-town_builds: "&#DDA840Здания"
+# Сообщения для создания и управления городом
+town:
+  create:
+    command: "Для создания города используйте /t create <город>"
+    success: "Вами был основан новый город {town}."
+    exist: "Город с таким названием уже существует."
+  join:
+    already_in_town: "Вы уже состоите в городе!"
+    resident_join: "{player} присоединился к городу."
+    accept: "Используйте /t accept <название города>"
+    accept_error: "У вас нет приглашения от этого города/нации."
+    accept_confirm: "Вы присоединились."
+  leave:
+    confirm: "Вы успешно покинули город."
+    error: "Вы не можете покинуть город, пока вы являетесь его мэром!"
+    resident_leave: "{player} покинул город."
+  delete:
+    confirm: "Успешное удаление города."
+  transfer:
+    command: "Используйте /t transfer <никнейм> кому хотите передать права."
+    success: "Вы успешно передали права."
+  set:
+    name:
+      command: "Используйте /t set name <название>"
+      success: "Вы успешно изменили название!"
+    map_color:
+      command: "Используйте /t set mapcolor <цвет>"
+      success: "Вы сменили цвет на {mapcolor}."
+  kick:
+    command: "Используйте /t kick <Игрок>"
+    success: "Вы успешно изгнали игрока."
+    not_mayor: "Вы не можете изгнать мэра."
+    not_in_town: "Игрок не состоит в вашем городе."
+  claim:
+    success: "Вы заприватили новый чанк для города."
+    error: "Рядом нет чанков, принадлежащих вашему городу."
+    already_claimed: "Этот чанк уже принадлежит городу."
+  unclaim:
+    success: "Вы расприватили чанк города."
+    home_block_error: "Вы не можете расприватить Хоумблок."
+    not_part_of_town: "Этот чанк не является частью города."
+  spawn:
+    set: "Вы установили новый спавн города."
+  home_block:
+    set: "Вы установили новый Хоумблок города."
+    already_set: "Этот чанк уже является Хоумблоком."
 
-n:
-  - "&#DDA840Информация о нации {nation}"
-  - " &#DDA840Глава: &f{king}"
-  - " &#DDA840Столица: &f{capital}"
-  - " §#DDA840Союз: &f{nation_union}"
+# Сообщения для нации
+nation:
+  create:
+    command: "Для создания нации используйте /n create <город>"
+    need_town: "Для создания нации нужен город!"
+    success: "Вы основали новую нацию {nation}."
+    exist: "Нация с таким названием уже существует."
+  delete:
+    success: "Вы успешно удалили {nation}."
+  join:
+    already_in_nation: "Вы уже состоите в нации!"
+    town_join: "К вашей нации присоединился {town}."
+    accept: "Вы приглашены в {nation}."
+    accept_error: "У вас нет приглашения от этой нации."
+  leave:
+    confirm: "Вы успешно покинули нацию {nation}."
+    town_leave: "Вашу нацию покинул {town}."
+    capital_error: "Нельзя покинуть нацию, в которой вы являетесь столицей."
+  transfer:
+    command: "Используйте /n transfer <город>, которому хотите передать нацию."
+    success: "Вы успешно передали права."
+  set:
+    name:
+      command: "Используйте /n set <параметр> <название>"
+    capital:
+      success: "Вы успешно сменили столицу."
+  kick:
+    command: "Используйте /n kick <Город>"
+    success: "Вы успешно изгнали город из нации."
+    town_no_nation: "Город не находится в вашей нации."
+    not_kick_capital: "Нельзя изгнать из нации столицу."
 
+# Чат и коммуникации
+chat:
+  global: "Глобальный чат включен!"
+  local: "Локальный чат включен!"
+  nation: "Национальный чат включен!"
+  town: "Городской чат включен!"
+  union: "Союзный чат включен!"
+  errors:
+    union: "Вы не состоите в союзе."
+    nation: "Вы не состоите в нации."
+    town: "Вы не состоите в городе."
 
-#Уведомления чанков
-#Вход в город
-enterTown: "Вы вошли в город {town}"
-subEnterTown: ""
-#Выход из города
-leaveTown: "Вы покинули {town}"
-subLeaveTown: ""
-#Вход в дикие земли
-enterWild: "Вы вошли в Дикие земли."
-subEnterWild: ""
+# Уведомления чанков
+chunk:
+  enter:
+    town: "Вы вошли в город {town}."
+    wild: "Вы вошли в Дикие земли."
+  leave:
+    town: "Вы покинули {town}."
+  action_bar: "       {town}       "
 
-#ACTION BAR
-actionBar: "       {town}       "
+# Взаимодействие с блоками
+block:
+  break: "Вы не можете здесь ломать блоки!"
+  interact: "Вы не можете здесь взаимодействовать!"
+  message_cancel_break_plot: "Вы не можете ломать блоки в этом участке."
 
-#Уведомления при взаимодействии с блоками
-breakBlock: "Вы не можете здесь ломать блоки!"
-interactBlock: "Вы не можете здесь взаимодействовать!"
+# Карта
+map:
+  name: "AstraMap"
 
-#/t map
-map_name: "AstraMap"
+# Объявления
+broadcast:
+  new_day: "Начался новый день!"
+  new_hour: ""
+  town:
+    created: "Был создан город - {townall}."
+    joined: "К вам присоединился новый игрок {player}."
+    removed: "Из города вышел - {player}."
+    deleted: "{townall} удален."
+  nation:
+    created: "Была создана нация - {nationall}."
+    joined: "К вам присоединился новый город {town}."
+    removed: "Нацию покинул город - {town}."
+    deleted: "{nationall} удалена."
 
-#broadcast newDay
-newDay: "Начался новый день!"
+# Подтверждения и приглашения
+confirmation:
+  text: "Нажмите для подтверждения."
+  invite:
+    sent: "Приглашение отправлено."
+    approve: "Вы приглашены в {town}."
+    already_invited: "Вы уже пригласили данного игрока."
+    already_in_town: "Игрок уже состоит в городе."
+    self_invite: "Вы не можете пригласить самого себя."
 
-#brodcase newHour
-newHour: ""
+# Прочее
+success: "Успешно!"
+language: "Вы сменили язык на {language}."
