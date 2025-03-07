@@ -1,18 +1,17 @@
-package dev.loveeev.astraTowny.timers;
+package dev.loveeev.astratowny.timers
 
-import dev.loveeev.astratowny.chat.Messages;
-import dev.loveeev.astratowny.utils.ChatUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 
-public class DayEventListener implements Listener {
+import dev.loveeev.astratowny.chat.Messages
+import org.bukkit.Bukkit
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+
+class DayEventListener : Listener {
 
     @EventHandler
-    public void onNewDay(NewDayEvent event) {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            ChatUtil.sendSuccessNotification(player,"New day!");
+    fun onNewDay(event: NewDayEvent?) {
+        for (player in Bukkit.getOnlinePlayers()) {
+            Messages.send(player, "new_day")
         }
     }
 }

@@ -1,5 +1,9 @@
 package dev.loveeev.astratowny.response
 
+import dev.loveeev.astratowny.events.response.ResponseFailEvent
+import dev.loveeev.astratowny.events.response.ResponseSuccessEvent
+import dev.loveeev.utils.BukkitUtils
+
 enum class Status {
     SUCCESS,
     FAILURE

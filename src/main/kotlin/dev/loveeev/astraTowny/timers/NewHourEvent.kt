@@ -1,25 +1,15 @@
-package dev.loveeev.astraTowny.timers;
+package dev.loveeev.astratowny.timers
 
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
-public class NewHourEvent extends Event {
-    private static final HandlerList handlers = new HandlerList();
-    private final int hour;
+class NewHourEvent(year: Int, month: Int, day: String?, val hour: Int) : Event() {
 
-    public NewHourEvent(int year,int month,String day,int hour) {
-        this.hour = hour;
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
 
-    public int getHour() {
-        return hour;
-    }
-
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
+    companion object {
+        val handlerList: HandlerList = HandlerList()
     }
 }

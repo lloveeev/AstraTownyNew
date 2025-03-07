@@ -1,239 +1,224 @@
-package dev.loveeev.astraTowny.utils.map;
-import dev.loveeev.astratowny.Core;
-import dev.loveeev.astratowny.data.TownyMapData;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Nation;
-import dev.loveeev.astratowny.objects.Resident;
-import dev.loveeev.astratowny.objects.townblocks.TownBlocks;
-import dev.loveeev.astratowny.objects.townblocks.WorldCoord;
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astraTowny.utils.Colors;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
-import org.jetbrains.annotations.NotNull;
+package dev.loveeev.astratowny.utils.map
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-public class MapHud {
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.data.TownyMapData
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Resident
+import dev.loveeev.astratowny.objects.townblocks.WorldCoord
+import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.TownBlock
+import dev.loveeev.astratowny.utils.Colors
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.Bukkit
+import org.bukkit.ChatColor
+import org.bukkit.World
+import org.bukkit.entity.Player
+import org.bukkit.scheduler.BukkitRunnable
+import org.bukkit.scoreboard.DisplaySlot
+import org.bukkit.scoreboard.Objective
+import org.bukkit.scoreboard.Scoreboard
+import java.util.concurrent.ConcurrentHashMap
+
+object MapHud {
 
     /* Scoreboards use old-timey colours. */
-    private static final ChatColor WHITE = ChatColor.WHITE;
-    private static final ChatColor GOLD = ChatColor.GOLD;
-    private static final ChatColor GREEN = ChatColor.GREEN;
-    private static final ChatColor DARK_GREEN = ChatColor.DARK_GREEN;
+    private val WHITE = ChatColor.WHITE
+    private val GOLD = ChatColor.GOLD
+    private val DARK_GREEN = ChatColor.DARK_GREEN
 
     /* Scoreboards use Teams here is our team names.*/
-    private static final String HUD_OBJECTIVE = "MAP_HUD_OBJ";
-    private static final String TEAM_MAP_PREFIX = "mapTeam";
-    private static final String TEAM_OWNER = "ownerTeam";
-    private static final String TEAM_TOWN = "townTeam";
+    private const val HUD_OBJECTIVE = "MAP_HUD_OBJ"
+    private const val TEAM_MAP_PREFIX = "mapTeam"
+    private const val TEAM_OWNER = "ownerTeam"
+    private const val TEAM_TOWN = "townTeam"
 
-    private static int lineWidth = 19, lineHeight = 10;
-    private static int halfLineWidth = lineWidth / 2;
-    private static int halfLineHeight = lineHeight / 2;
+    private const val lineWidth = 19
+    private const val lineHeight = 10
+    private const val halfLineWidth = lineWidth / 2
+    private const val halfLineHeight = lineHeight / 2
 
-
-    public static String mapHudTestKey() {
-        return "mapTeam1";
+    fun mapHudTestKey(): String {
+        return "mapTeam1"
     }
 
-
-    public static Objective objective(Scoreboard board, @NotNull String name, @NotNull String displayName) {
-        return board.registerNewObjective(name, "dummy", displayName);
+    fun objective(board: Scoreboard, name: String, displayName: String): Objective {
+        return board.registerNewObjective(name, "dummy", displayName)
     }
 
-    public static void toggleOn(Player player) {
-        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective objective = objective(board, HUD_OBJECTIVE, "maphud");
-        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+    fun toggleOn(player: Player) {
+        val board = Bukkit.getScoreboardManager().newScoreboard
+        val objective = objective(board, HUD_OBJECTIVE, "maphud")
+        objective.displaySlot = DisplaySlot.SIDEBAR
 
-        int score = lineHeight + 2;
-        ChatColor[] colors = ChatColor.values();
-        for (int i = 0; i < lineHeight; i++) {
-            board.registerNewTeam(TEAM_MAP_PREFIX + i).addEntry(colors[i].toString());
-            objective.getScore(colors[i].toString()).setScore(score);
-            score--;
-        }
-        //хз проверять нужно
-        String townEntry = DARK_GREEN + "_" + ": ";
-        String ownerEntry = DARK_GREEN + "^" + ": ";
-
-        board.registerNewTeam(TEAM_TOWN).addEntry(townEntry);
-        objective.getScore(townEntry).setScore(2);
-
-        board.registerNewTeam(TEAM_OWNER).addEntry(ownerEntry);
-        objective.getScore(ownerEntry).setScore(1);
-
-        player.setScoreboard(board);
-        updateMap(player);
-    }
-
-    public static void updateMap(Player player) {
-        updateMap(player, WorldCoord.parseWorldCoord(player));
-    }
-
-    public static void updateMap(Player player, WorldCoord wc) {
-        Scoreboard board = player.getScoreboard();
-        if (board.getObjective(HUD_OBJECTIVE) == null || wc.getBukkitWorld() == null) {
-            toggleOff(player);
-            return;
+        var score = lineHeight + 2
+        val colors = ChatColor.entries.toTypedArray()
+        for (i in 0 until lineHeight) {
+            board.registerNewTeam(TEAM_MAP_PREFIX + i).addEntry(colors[i].toString())
+            objective.getScore(colors[i].toString()).score = score
+            score--
         }
 
-        int wcX = wc.getX();
-        int wcZ = wc.getZ();
+        val townEntry = "$DARK_GREEN" + "_: "
+        val ownerEntry = "$DARK_GREEN^: "
+
+        board.registerNewTeam(TEAM_TOWN).addEntry(townEntry)
+        objective.getScore(townEntry).score = 2
+
+        board.registerNewTeam(TEAM_OWNER).addEntry(ownerEntry)
+        objective.getScore(ownerEntry).score = 1
+
+        player.scoreboard = board
+        updateMap(player)
+    }
+
+    fun updateMap(player: Player) {
+        updateMap(player, WorldCoord.parseWorldCoord(player))
+    }
+
+    fun updateMap(player: Player, wc: WorldCoord) {
+        val board = player.scoreboard
+        if (board.getObjective(HUD_OBJECTIVE) == null || Bukkit.getWorld(wc.worldName) == null) {
+            toggleOff(player)
+            return
+        }
+
+        val wcX = wc.x
+        val wcZ = wc.z
         // Set the board title.
-        String boardTitle = String.format("%sASTRATOWNY MAP %s(%s, %s)", GOLD, WHITE, wcX, wcZ);
-        board.getObjective(HUD_OBJECTIVE).setDisplayName(boardTitle);
+        val boardTitle = "$GOLD ASTATOWNY MAP $WHITE($wcX, $wcZ)"
+        board.getObjective(HUD_OBJECTIVE)!!.displayName = boardTitle
 
         // Populate our map into an array.
-        String[][] map = new String[lineWidth][lineHeight];
-        fillMapArray(wcX, wcZ, TownManager.getInstance().getResident(player.getName()), player.getWorld(), map);
+        val map = Array(lineWidth) { Array(lineHeight) { "" } }
+        TownManager.getResident(player.name)?.let { fillMapArray(wcX, wcZ, it, player.world, map) }
 
         // Write out the map to the board.
-        writeMapToBoard(board, map);
+        writeMapToBoard(board, map)
     }
 
-    private static void fillMapArray(int wcX, int wcZ, Resident resident, World bukkitWorld, String[][] map) {
-        int x, y = 0;
-        for (int tby = wcX + (lineWidth - halfLineWidth - 1); tby >= wcX - halfLineWidth; tby--) {
-            x = 0;
-            for (int tbx = wcZ - halfLineHeight; tbx <= wcZ + (lineHeight - halfLineHeight - 1); tbx++) {
-                final WorldCoord worldCoord = new WorldCoord(bukkitWorld, tby, tbx);
+    private fun fillMapArray(wcX: Int, wcZ: Int, resident: Resident, bukkitWorld: World, map: Array<Array<String>>) {
+        for ((y, tby) in (wcX + (lineWidth - halfLineWidth - 1) downTo wcX - halfLineWidth).withIndex()) {
+            for ((x, tbx) in (wcZ - halfLineHeight..wcZ + (lineHeight - halfLineHeight - 1)).withIndex()) {
+                val worldCoord = WorldCoord(bukkitWorld, tby, tbx)
                 if (worldCoord.hasTownBlock()) {
-                    mapTownBlock(resident, map, x, y, worldCoord.getTownBlockOrNull());
+                    worldCoord.getTownBlockOrNull()?.let { mapTownBlock(resident, map, x, y, it) }
                 } else {
-                    mapWilderness(map, x, y, worldCoord);
+                    mapWilderness(map, x, y, worldCoord)
                 }
-                x++;
             }
-            y++;
         }
     }
 
-    static List<Player> permUsers = new ArrayList<>();
-    static List<Player> mapUsers = new ArrayList<>();
+    private val permUsers: MutableList<Player> = mutableListOf()
+    private val mapUsers: MutableList<Player> = mutableListOf()
 
-    public static void toggleOff(final Player player) {
-        Optional.ofNullable(Bukkit.getScoreboardManager()).ifPresent(manager -> player.setScoreboard(manager.getMainScoreboard()));
+    fun toggleOff(player: Player) {
+        Bukkit.getScoreboardManager().let { manager ->
+            player.scoreboard = manager.mainScoreboard
+        }
     }
 
-    public static void toggleMapHud(Player player) {
-
+    fun toggleMapHud(player: Player) {
         if (!mapUsers.contains(player)) {
-            toggleAllOff(player);
-            mapUsers.add(player);
-            toggleOn(player);
-        } else
-            toggleAllOff(player);
-    }
-    public static void startScoreboardUpdates() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Player player : mapUsers) {
-                    updateMap(player); // Update scoreboard
-                }
-            }
-        }.runTaskTimer(Core.getInstance(), 0L, 1); // 20 ticks = 1 second
-    }
-
-    public static void toggleAllOff(Player p) {
-        permUsers.remove(p);
-        mapUsers.remove(p);
-        if (p.isOnline())
-            toggleOff(p);
-    }
-
-
-    private static void mapTownBlock(Resident resident, String[][] map, int x, int y, final TownBlocks townBlock) {
-        map[y][x] = getTownBlockColour(resident, x, y, townBlock);
-
-
-        if (townBlock.isHomeBlock()) {
-            map[y][x] += "H";
-        } else{
-            map[y][x] += "+";
+            toggleAllOff(player)
+            mapUsers.add(player)
+            toggleOn(player)
+        } else {
+            toggleAllOff(player)
         }
     }
 
-    private static String getTownBlockColour(Resident resident, int x, int y, final TownBlocks townBlock) {
-        if (playerLocatedAtThisCoord(x, y))
-            // This is the player's location, colour it special.
-            return dev.loveeev.astratowny.utils.Colors.Gold;
-        else if (resident.hasTown())
-            // The townblock could have a variety of colours.
-            return getTownBlockColour(resident, townBlock.getTown());
-        else
-            // Default fallback.
-            return dev.loveeev.astratowny.utils.Colors.White;
+    fun startScoreboardUpdates() {
+        object : BukkitRunnable() {
+            override fun run() {
+                for (player in mapUsers) {
+                    updateMap(player) // Update scoreboard
+                }
+            }
+        }.runTaskTimer(AstraTowny.instance, 0L, 1) // 20 ticks = 1 second
     }
 
-    private static String getTownBlockColour(Resident resident, Town townAtTownBlock) {
+    fun toggleAllOff(p: Player) {
+        permUsers.remove(p)
+        mapUsers.remove(p)
+        if (p.isOnline)
+            toggleOff(p)
+    }
 
-        if (!resident.hasNation())
-            return dev.loveeev.astratowny.utils.Colors.White;
+    private fun mapTownBlock(resident: Resident, map: Array<Array<String>>, x: Int, y: Int, townBlock: TownBlock) {
+        map[y][x] = getTownBlockColour(resident, x, y, townBlock)
 
-        Nation resNation = resident.getNation();
+        if (townBlock.isHomeBlock) {
+            map[y][x] += "H"
+        } else {
+            map[y][x] += "+"
+        }
+    }
+
+    private fun getTownBlockColour(resident: Resident, x: Int, y: Int, townBlock: TownBlock): String {
+        return if (playerLocatedAtThisCoord(x, y)) {
+            Colors.Gold
+        } else if (resident.hasTown) {
+            getTownBlockColour(resident, townBlock.town)
+        } else {
+            Colors.White
+        }
+    }
+
+    private fun getTownBlockColour(resident: Resident, townAtTownBlock: Town): String {
+        if (!resident.hasNation) return Colors.White
+
+        val resNation = resident.nation
         // Another town in the player's nation.
-        if (resNation.hasTown(townAtTownBlock))
-            return dev.loveeev.astratowny.utils.Colors.Green;
+        if (resNation?.hasTown(townAtTownBlock) == true) {
+            return Colors.Green
+        }
 
-        return dev.loveeev.astratowny.utils.Colors.White;
+        return Colors.White
     }
 
-    private static boolean playerLocatedAtThisCoord(int x, int y) {
-        return x == halfLineHeight && y == halfLineWidth;
+    private fun playerLocatedAtThisCoord(x: Int, y: Int): Boolean {
+        return x == halfLineHeight && y == halfLineWidth
     }
 
-    private static void mapWilderness(String[][] map, int x, int y, final WorldCoord worldCoord) {
+    private fun mapWilderness(map: Array<Array<String>>, x: Int, y: Int, worldCoord: WorldCoord) {
         // Colour gold if this is the player loc, otherwise normal gray.
-        map[y][x] = playerLocatedAtThisCoord(x, y) ? dev.loveeev.astratowny.utils.Colors.Gold : Colors.Gray;
+        map[y][x] = if (playerLocatedAtThisCoord(x, y)) Colors.Gold else Colors.Gray
 
-        String symbol;
+        val symbol: String
         // Cached TownyMapData is present and not old.
-        final dev.loveeev.astratowny.data.TownyMapData data = getWildernessMapDataMap().get(worldCoord);
+        val data = getWildernessMapDataMap()[worldCoord]
 
         if (data != null && !data.isOld()) {
-            dev.loveeev.astratowny.data.TownyMapData mapData = getWildernessMapDataMap().get(worldCoord);
-            symbol = mapData.getSymbol();
-            // Cached TownyMapData is either not present or was considered old.
+            symbol = data.symbol
         } else {
-            symbol = "-";
-            TextComponent hover = Component.text("pds", NamedTextColor.DARK_RED).append(Component.text(" (" + worldCoord.getX() + ", " + worldCoord.getZ() + ")", NamedTextColor.WHITE));
-            getWildernessMapDataMap().put(worldCoord, new TownyMapData(worldCoord, symbol, hover, "/towny:townyworld"));
+            symbol = "-"
+            val hover = Component.text("pds", NamedTextColor.DARK_RED)
+                .append(Component.text(" (${worldCoord.x}, ${worldCoord.z})", NamedTextColor.WHITE))
+            getWildernessMapDataMap()[worldCoord] = TownyMapData(worldCoord, symbol, hover, "/towny:townyworld")
 
-            Bukkit.getScheduler().runTaskLaterAsynchronously(Core.getInstance(), () -> {
-                getWildernessMapDataMap().computeIfPresent(worldCoord, (key, cachedData) -> cachedData.isOld() ? null : cachedData);
-            }, 20L * 35); // Задержка в 35 секундах (20 тиков в секунду)
+            Bukkit.getScheduler().runTaskLaterAsynchronously(AstraTowny.instance, Runnable {
+                getWildernessMapDataMap().computeIfPresent(worldCoord) { _, cachedData ->
+                    if (cachedData.isOld()) null else cachedData
+                }
+            }, 20L * 35)
         }
 
-        map[y][x] += symbol;
+        map[y][x] += symbol
     }
 
-    private static Map<WorldCoord, TownyMapData> getWildernessMapDataMap() {
-        return new ConcurrentHashMap<>();
+    private fun getWildernessMapDataMap(): MutableMap<WorldCoord, TownyMapData> {
+        return ConcurrentHashMap()
     }
 
-    private static void writeMapToBoard(Scoreboard board, String[][] map) {
-        for (int my = 0; my < lineHeight; my++) {
-            StringBuilder line = new StringBuilder();
-            for (int mx = lineWidth - 1; mx >= 0; mx--)
-                line.append(map[mx][my]);
-
-            board.getTeam(TEAM_MAP_PREFIX + my).setSuffix(line.toString());
+    private fun writeMapToBoard(board: Scoreboard, map: Array<Array<String>>) {
+        for (my in 0 until lineHeight) {
+            val line = StringBuilder()
+            for (mx in lineWidth - 1 downTo 0) {
+                line.append(map[mx][my])
+            }
+            board.getTeam(TEAM_MAP_PREFIX + my)?.suffix = line.toString()
         }
     }
 }

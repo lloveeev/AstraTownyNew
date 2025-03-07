@@ -1,39 +1,28 @@
-package dev.loveeev.astraTowny.events.nation;
+package dev.loveeev.astratowny.events.nation
 
-import dev.loveeev.astratowny.objects.Town;
-import lombok.Getter;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
+import dev.loveeev.astratowny.objects.Town
+import lombok.Getter
+import org.bukkit.event.Cancellable
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
-public class NationTownLeave extends Event implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
-    private boolean isCancelled;
-    @Getter
-    private final Town town;
+class NationTownLeave // Default to not cancelled
+    (@field:Getter private val town: Town) : Event(), Cancellable {
+    private var isCancelled = false
 
-    public NationTownLeave(@NotNull Town town) {
-        this.town = town;
-        this.isCancelled = false; // Default to not cancelled
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
 
-    @Override
-    public @NotNull HandlerList getHandlers() {
-        return handlers;
+    override fun isCancelled(): Boolean {
+        return isCancelled
     }
 
-    public static HandlerList getHandlerList() {
-        return handlers;
+    override fun setCancelled(cancel: Boolean) {
+        this.isCancelled = cancel
     }
 
-    @Override
-    public boolean isCancelled() {
-        return isCancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancel) {
-        this.isCancelled = cancel;
+    companion object {
+        val handlerList: HandlerList = HandlerList()
     }
 }

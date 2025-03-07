@@ -1,38 +1,28 @@
-package dev.loveeev.astraTowny.events.resident;
+package dev.loveeev.astratowny.events.resident
 
-import dev.loveeev.astratowny.objects.Resident;
-import lombok.Getter;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.bukkit.event.Cancellable;
+import dev.loveeev.astratowny.objects.Resident
+import lombok.Getter
+import org.bukkit.event.Cancellable
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
 @Getter
-public class ResidentDeleteEvent extends Event implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
-    private boolean cancelled;
-    private final Resident resident;
+class ResidentDeleteEvent(private val resident: Resident) : Event(), Cancellable {
+    private var cancelled = false
 
-    public ResidentDeleteEvent(Resident res) {
-        this.resident = res;
-        this.cancelled = false;
+    override fun isCancelled(): Boolean {
+        return cancelled
     }
 
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
+    override fun setCancelled(cancelled: Boolean) {
+        this.cancelled = cancelled
     }
 
-    @Override
-    public void setCancelled(boolean cancelled) {
-        this.cancelled = cancelled;
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
 
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    public static HandlerList getHandlerList() {
-        return handlers;
+    companion object {
+        val handlerList: HandlerList = HandlerList()
     }
 }

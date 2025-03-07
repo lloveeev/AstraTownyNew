@@ -3,6 +3,7 @@ package dev.loveeev.astratowny.manager
 import dev.loveeev.astratowny.objects.Nation
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.Coord
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
@@ -26,6 +27,15 @@ object TownManager {
     fun getTownBlock(location: Location) = location.let { townBlocks[WorldCoord.parseWorldCoord(it)] }
     fun getTownBlock(worldCoord: WorldCoord) = worldCoord.let { townBlocks[it] }
 
+    fun getTownBlock(coord: Coord): TownBlock? {
+        for ((t, u) in townBlocks) {
+            if (t.x == coord.x && t.z == coord.z) {
+                return u
+            }
+        }
+        return null
+    }
+
     fun addTownBlock(townBlock: TownBlock?) {
         townBlock?.let { townBlocks[WorldCoord.parseTownBlocksCoord(it)] = it }
     }
@@ -41,4 +51,5 @@ object TownManager {
 
     fun getResident(uuid: UUID) = residents.find { it.uuid == uuid }
     fun getResident(player: Player) = residents.find { it.uuid == player.uniqueId }
+    fun getResident(player: String) = residents.find { it.playerName == player }
 }

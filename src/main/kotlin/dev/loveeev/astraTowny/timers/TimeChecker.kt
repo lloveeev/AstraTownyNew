@@ -1,53 +1,50 @@
-package dev.loveeev.astraTowny.timers;
+package dev.loveeev.astratowny.timers
 
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitRunnable;
+import dev.loveeev.astratowny.AstraTowny
+import org.bukkit.Bukkit
+import org.bukkit.scheduler.BukkitRunnable
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.Locale
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.TextStyle;
-import java.util.Locale;
+class TimeChecker : BukkitRunnable() {
 
-public class TimeChecker extends BukkitRunnable {
+    private val zoneId: ZoneId = ZoneId.of(AstraTowny.instance.config.getString("time_zone"))
+    private var lastCheckedDate: LocalDateTime? = null
+    private var lastCheckedHour: Int = -1
 
-    private final ZoneId zoneId = ZoneId.of("Europe/Moscow");
-    private LocalDateTime lastCheckedDate = null;
-    private int lastCheckedHour = -1;
+    override fun run() {
+        val now = LocalDateTime.now(zoneId)
 
-    @Override
-    public void run() {
-        LocalDateTime now = LocalDateTime.now(zoneId);
-
-        // Проверка на смену дня
-        if (lastCheckedDate == null || now.getDayOfYear() != lastCheckedDate.getDayOfYear()) {
-            callNewDayEvent(now);
-            lastCheckedDate = now;
+        if (lastCheckedDate == null || now.dayOfYear != lastCheckedDate?.dayOfYear) {
+            callNewDayEvent(now)
+            lastCheckedDate = now
         }
 
-        // Проверка на смену часа
-        if (lastCheckedHour == -1 || now.getHour() != lastCheckedHour) {
-            callNewHourEvent(now);
-            lastCheckedHour = now.getHour();
+        if (lastCheckedHour == -1 || now.hour != lastCheckedHour) {
+            callNewHourEvent(now)
+            lastCheckedHour = now.hour
         }
     }
 
-    private void callNewDayEvent(LocalDateTime now) {
-        int year = now.getYear();
-        int month = now.getMonthValue();
-        int dayOfMonth = now.getDayOfMonth();
-        String dayOfWeek = now.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
+    private fun callNewDayEvent(now: LocalDateTime) {
+        val year = now.year
+        val month = now.monthValue
+        val dayOfMonth = now.dayOfMonth
+        val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase(Locale.getDefault())
 
-        NewDayEvent event = new NewDayEvent(dayOfWeek, year, month, dayOfMonth);
-        Bukkit.getServer().getPluginManager().callEvent(event);
+        val event = NewDayEvent(dayOfWeek, year, month, dayOfMonth)
+        Bukkit.getServer().pluginManager.callEvent(event)
     }
 
-    private void callNewHourEvent(LocalDateTime now) {
-        int year = now.getYear();
-        int month = now.getMonthValue();
-        String dayOfWeek = now.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
-        int hour = now.getHour();
+    private fun callNewHourEvent(now: LocalDateTime) {
+        val year = now.year
+        val month = now.monthValue
+        val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase(Locale.getDefault())
+        val hour = now.hour
 
-        //NewHourEvent event = new NewHourEvent(year, month, dayOfWeek, hour);
-        //Bukkit.getServer().getPluginManager().callEvent(event);
+        val event = NewHourEvent(year, month, dayOfWeek, hour)
+        Bukkit.getServer().pluginManager.callEvent(event)
     }
 }

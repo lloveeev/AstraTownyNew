@@ -1,40 +1,27 @@
-package dev.loveeev.astraTowny.events.resident;
+package dev.loveeev.astratowny.events.resident
 
-import dev.loveeev.astratowny.objects.Resident;
-import lombok.Getter;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
+import dev.loveeev.astratowny.objects.Resident
+import lombok.Getter
+import org.bukkit.event.Cancellable
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
-public class ResidentTownJoin extends Event implements Cancellable {
+class ResidentTownJoin(@field:Getter private val resident: Resident) : Event(), Cancellable {
+    private var cancelled = false // Track whether the event has been cancelled
 
-    private static final HandlerList handlers = new HandlerList();
-
-    @Getter
-    private final Resident resident;
-    private boolean cancelled = false;  // Track whether the event has been cancelled
-
-    public ResidentTownJoin(Resident resident) {
-        this.resident = resident;
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
 
-    @Override
-    public @NotNull HandlerList getHandlers() {
-        return handlers;
+    override fun isCancelled(): Boolean {
+        return cancelled
     }
 
-    public static HandlerList getHandlerList() {
-        return handlers;
+    override fun setCancelled(cancel: Boolean) {
+        this.cancelled = cancel
     }
 
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
+    companion object {
+        val handlerList: HandlerList = HandlerList()
     }
 }

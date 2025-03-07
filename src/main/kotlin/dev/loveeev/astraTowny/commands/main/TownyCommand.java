@@ -38,17 +38,6 @@ import java.util.stream.Collectors;
 
 public class TownyCommand implements TabExecutor{
 
-    private static final Map<String, CommandExecutor> commandExecutors = new HashMap<>();
-    private static final Map<String, TabCompleter> tabCompleters = new HashMap<>();
-
-    public static void addCommand(@NotNull String argument, @NotNull CommandExecutor executor) {
-        commandExecutors.put(argument, executor);
-    }
-
-    public static void addCompleter(@NotNull String argument, @NotNull TabCompleter completer) {
-        tabCompleters.put(argument, completer);
-    }
-
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {

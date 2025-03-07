@@ -50,9 +50,13 @@ data class WorldCoord(
         fun parseWorldCoord(block: Block): WorldCoord {
             return WorldCoord(block.world, toCell(block.x), toCell(block.z))
         }
+
+        fun parseWorldCoord(coord: Coord): WorldCoord? {
+            return Bukkit.getWorld("world")?.let { WorldCoord(it, toCell(coord.x), toCell(coord.z)) }
+        }
     }
 
-    fun getTownBlockOrNull(): TownBlock {
+    fun getTownBlockOrNull(): TownBlock? {
         return TownManager.getTownBlock(this)
     }
 

@@ -13,7 +13,8 @@ language:
   - by
   - ua
 prefix: "&#DDA840&lTowny &8› &r"
-data: "Europe/Moscow"
+time_zone: "Europe/Moscow"
+
 #Permissions, do not touch / Разрешения Не трогать для нормальной работы плагина
 permissions:
   - ASTRATOWN_TOWN_CLAIM

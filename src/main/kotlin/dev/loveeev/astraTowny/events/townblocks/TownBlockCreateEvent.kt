@@ -1,43 +1,30 @@
-package dev.loveeev.astraTowny.events.townblocks;
+package dev.loveeev.astratowny.events.townblocks
 
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astratowny.objects.townblocks.TownBlocks;
-import lombok.Getter;
-import org.bukkit.event.Cancellable;
-import org.bukkit.event.Event;
-import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
+import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.TownBlock
+import lombok.Getter
+import org.bukkit.event.Cancellable
+import org.bukkit.event.Event
+import org.bukkit.event.HandlerList
 
 @Getter
-public class TownBlockCreateEvent extends Event implements Cancellable {
+class TownBlockCreateEvent(private val town: Town, chunk: TownBlock) : Event(), Cancellable {
 
-    private static final HandlerList handlers = new HandlerList();
+    private var cancelled = false // Track whether the event has been cancelled
 
-    private final Town town;
-    private final TownBlocks chunk;
-    private boolean cancelled = false;  // Track whether the event has been cancelled
-
-    public TownBlockCreateEvent(Town town, TownBlocks chunk) {
-        this.town = town;
-        this.chunk = chunk;
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
 
-    @Override
-    public @NotNull HandlerList getHandlers() {
-        return handlers;
+    override fun isCancelled(): Boolean {
+        return cancelled
     }
 
-    public static HandlerList getHandlerList() {
-        return handlers;
+    override fun setCancelled(cancel: Boolean) {
+        this.cancelled = cancel
     }
 
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
-    @Override
-    public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
+    companion object {
+        val handlerList: HandlerList = HandlerList()
     }
 }
