@@ -7,7 +7,7 @@ import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
 class NationDeleteEvent // Default to not cancelled
-    (@field:Getter private val nation: Nation) : Event(), Cancellable {
+    (val nation: Nation) : Event(), Cancellable {
     private var isCancelled = false
 
     override fun getHandlers(): HandlerList {

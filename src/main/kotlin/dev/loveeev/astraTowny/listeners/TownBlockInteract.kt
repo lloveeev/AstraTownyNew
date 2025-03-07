@@ -1,76 +1,67 @@
-package dev.loveeev.astraTowny.listeners;
+package dev.loveeev.astratowny.listeners
 
-import dev.loveeev.astraTowny.Core;
-import dev.loveeev.astratowny.chat.Messages;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astratowny.objects.townblocks.TownBlocks;
-import dev.loveeev.astratowny.objects.townblocks.WorldCoord;
-import dev.loveeev.astratowny.utils.ChatUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.block.Block;
-import org.bukkit.entity.Animals;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.townblocks.WorldCoord
+import org.bukkit.Bukkit
+import org.bukkit.block.Block
+import org.bukkit.entity.Animals
+import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.player.PlayerInteractEvent
 
-import java.util.Objects;
+class TownBlockInteract : Listener {
 
-public class TownBlockInteract implements Listener {
-
-
-    public TownBlockInteract(){
-        Bukkit.getPluginManager().registerEvents(this,Core.getInstance());
+    init {
+        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
     }
 
-
     @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        if(!TownManager.getInstance().getResident(player).hasTownPermission("OP_BUILD") || !player.isOp()){
-            return;
-        }
-        if (event.getClickedBlock() != null) {
-            Block chunk = Objects.requireNonNull(event.getClickedBlock());
+    fun onPlayerInteract(event: PlayerInteractEvent) {
+        val player = event.player
+        //if (!TownManager.getResident(player).hasTownPermission("OP_BUILD") || !player.isOp) {
+        //    return
+        //}
 
-            if (canPlayerInteract(player, chunk)) {
-                event.setCancelled(true);
-                ChatUtil.sendSuccessNotification(player, Messages.interactBlock(player));
+        event.clickedBlock?.let { block ->
+            if (canPlayerInteract(player, block)) {
+                event.isCancelled = true
+                Messages.send(player, "block.interact")
             }
         }
     }
 
     @EventHandler
-    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player player) {
-            if(!TownManager.getInstance().getResident(player).hasTownPermission("OP_BUILD") || !player.isOp()){
-                return;
-            }
-            if (event.getEntity() instanceof Animals) {
-                Block chunk = event.getEntity().getLocation().getBlock();
+    fun onEntityDamageByEntity(event: EntityDamageByEntityEvent) {
+        if (event.damager is Player) {
+            val player = event.damager as Player
+            //if (!TownManager.getInstance().getResident(player).hasTownPermission("OP_BUILD") || !player.isOp) {
+            //    return
+            //}
+
+            if (event.entity is Animals) {
+                val chunk = event.entity.location.block
                 if (canPlayerInteract(player, chunk)) {
-                    event.setCancelled(true);
-                    ChatUtil.sendSuccessNotification(player, Messages.interactBlock(player));
+                    event.isCancelled = true
+                    Messages.send(player, "block.entity")
                 }
             }
         }
     }
 
+    private fun canPlayerInteract(player: Player, block: Block): Boolean {
+        val townBlock = TownManager.getTownBlock(WorldCoord(block.world, block.x, block.y))
 
+        return if (townBlock != null) {
+            val town = townBlock.town
+            val playerTown = TownManager.getTown(player)
 
-
-    private boolean canPlayerInteract(Player player, Block block) {
-        TownBlocks townBlock = TownManager.getInstance().getTownBlock(new WorldCoord(block.getWorld(),block.getX(),block.getY()));
-
-        if (townBlock != null) {
-            Town town = townBlock.getTown();
-            Town playerTown = TownManager.getInstance().getTown(player);
-
-            return playerTown == null || !playerTown.equals(town);
+            playerTown == null || playerTown != town
+        } else {
+            false
         }
-
-        return false;
     }
 }

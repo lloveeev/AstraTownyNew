@@ -1,53 +1,54 @@
-package dev.loveeev.astraTowny.listeners;
+package dev.loveeev.astratowny.listeners
 
-import dev.loveeev.astraTowny.Core;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Town;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockIgniteEvent;
-import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-public class TownBlockFlags implements Listener {
-    public TownBlockFlags() {
-        Bukkit.getPluginManager().registerEvents(this, Core.getInstance());
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Town
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.block.BlockIgniteEvent
+import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.entity.EntityDamageByEntityEvent
+
+class TownBlockFlags : Listener {
+
+    init {
+        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
     }
 
     @EventHandler
-    public void onExplosionTown(EntityExplodeEvent event) {
-        Location location = event.getLocation();
-        Town town = getTownByChunk(location);
+    fun onExplosionTown(event: EntityExplodeEvent) {
+        val location = event.location
+        val town = getTownByChunk(location)
 
-        if (town != null && town.getEventStatus(Town.PermsType.EXPLOSION)) {
-            event.setCancelled(true);
+        if (town != null && town.getPermStatus(Town.PermsType.EXPLOSION)) {
+            event.isCancelled = true
         }
     }
 
     @EventHandler
-    public void onPvpInTown(EntityDamageByEntityEvent event) {
-        Location location = event.getEntity().getLocation();
-        Town town = getTownByChunk(location);
+    fun onPvpInTown(event: EntityDamageByEntityEvent) {
+        val location = event.entity.location
+        val town = getTownByChunk(location)
 
-
-        if (town != null && town.getEventStatus(Town.PermsType.PVP)) {
-            event.setCancelled(true);
+        if (town != null && town.getPermStatus(Town.PermsType.PVP)) {
+            event.isCancelled = true
         }
     }
 
     @EventHandler
-    public void onFireInTown(BlockIgniteEvent event) {
-        Location chunk = event.getBlock().getLocation();
-        Town town = getTownByChunk(chunk);
+    fun onFireInTown(event: BlockIgniteEvent) {
+        val chunk = event.block.location
+        val town = getTownByChunk(chunk)
 
-        if (town != null && town.getEventStatus(Town.PermsType.FIRE)) {
-            event.setCancelled(true);
+        if (town != null && town.getPermStatus(Town.PermsType.FIRE)) {
+            event.isCancelled = true
         }
     }
 
-    public Town getTownByChunk(Location chunk) {
-        return TownManager.getInstance().getTownByChunk(TownManager.getInstance().getTownBlock(chunk));
+    private fun getTownByChunk(chunk: Location): Town? {
+        return TownManager.getTownBlock(chunk)?.town
     }
 }

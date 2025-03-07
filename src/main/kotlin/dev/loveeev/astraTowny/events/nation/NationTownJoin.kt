@@ -6,7 +6,7 @@ import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
-class NationTownJoin(@field:Getter private val town: Town) : Event(), Cancellable {
+class NationTownJoin(val town: Town) : Event(), Cancellable {
     private var isCancelled = false
 
     override fun getHandlers(): HandlerList {

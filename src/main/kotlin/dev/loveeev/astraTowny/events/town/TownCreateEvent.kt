@@ -1,13 +1,11 @@
 package dev.loveeev.astratowny.events.town
 
 import dev.loveeev.astratowny.objects.Town
-import lombok.Getter
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
-@Getter
-class TownCreateEvent(private val town: Town) : Event(), Cancellable {
+class TownCreateEvent(val town: Town) : Event(), Cancellable {
     private var cancelled = false
 
     override fun isCancelled(): Boolean {

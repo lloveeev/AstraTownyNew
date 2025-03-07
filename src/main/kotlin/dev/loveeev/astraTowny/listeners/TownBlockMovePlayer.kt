@@ -1,69 +1,76 @@
-package dev.loveeev.astraTowny.listeners;
+package dev.loveeev.astratowny.listeners
 
-import dev.loveeev.astraTowny.Core;
-import dev.loveeev.astratowny.config.TranslateYML;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astratowny.objects.townblocks.TownBlocks;
-import dev.loveeev.astratowny.objects.townblocks.WorldCoord;
-import dev.loveeev.astratowny.utils.ChatUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerMoveEvent;
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.config.TranslateYML
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.WorldCoord
+import dev.loveeev.utils.TextUtil
+import net.md_5.bungee.api.ChatMessageType
+import net.md_5.bungee.api.chat.TextComponent
+import org.bukkit.Bukkit
+import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
+import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerMoveEvent
 
-import java.util.HashMap;
-import java.util.Map;
 
-public class TownBlockMovePlayer implements Listener {
-    private final Map<Player, Town> playerTownMap = new HashMap<>();
-    private final Map<Player, Boolean> sendTownMessageAlready = new HashMap<>();
-    private final Map<Player, Boolean> actionBarActive = new HashMap<>();
+class TownBlockMovePlayer : Listener {
+    private val playerTownMap = mutableMapOf<Player, Town?>()
+    private val sendTownMessageAlready = mutableMapOf<Player, Boolean>()
+    private val actionBarActive = mutableMapOf<Player, Boolean>()
 
-    public TownBlockMovePlayer() {
-        Bukkit.getPluginManager().registerEvents(this, Core.getInstance());
+    init {
+        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
     }
 
     @EventHandler
-    public void onBlockInteract(PlayerMoveEvent event) {
-        Bukkit.getScheduler().runTask(Core.getInstance(), () -> handlePlayerMove(event));
+    fun onBlockInteract(event: PlayerMoveEvent) {
+        Bukkit.getScheduler().runTask(AstraTowny.instance, Runnable { handlePlayerMove(event) })
     }
 
-    private void handlePlayerMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-        Location location = player.getLocation();
-        WorldCoord currentCoord = new WorldCoord(location.getWorld(), location.getBlockX(), location.getBlockY());
-        TownBlocks currentTownBlock = TownManager.getInstance().getTownBlock(currentCoord);
+    private fun handlePlayerMove(event: PlayerMoveEvent) {
+        val player = event.player
+        val location = player.location
+        val currentTownBlock = TownManager.getTownBlock(WorldCoord(location.world, location.blockX, location.blockY))
 
         // Пропустить, если игрок не перемещается между разными блоками
-        if (event.getFrom().getBlockX() == event.getTo().getBlockX() &&
-                event.getFrom().getBlockY() == event.getTo().getBlockY() &&
-                event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
-            return;
+        if (event.from.blockX == event.to.blockX &&
+            event.from.blockY == event.to.blockY &&
+            event.from.blockZ == event.to.blockZ) {
+            return
         }
 
-        Town currentTown = (currentTownBlock != null) ? currentTownBlock.getTown() : null;
-        Town lastTown = playerTownMap.get(player);
+        val currentTown = currentTownBlock?.town
+        val lastTown = playerTownMap[player]
 
         // Обновить сообщения и строку состояния, если город изменился
         if (currentTown != lastTown) {
             if (currentTown != null) {
-                if (!sendTownMessageAlready.getOrDefault(player, false)) {
-                    actionBarActive.put(player, true);
-                    ChatUtil.sendTitle(player, TranslateYML.get(player).getString("enterTown").replace("{town}", currentTown.getName()),
-                            TranslateYML.get(player).getString("subEnterTown").replace("{town}", currentTown.getName()));
-                    sendTownMessageAlready.put(player, true);
+                if (sendTownMessageAlready.getOrDefault(player, false).not()) {
+                    actionBarActive[player] = true
+                    sendTitle(
+                        player,
+                        TranslateYML.getTranslation(player, "chunk.enter.town").replace("{town}", currentTown.name),
+                        TranslateYML.getTranslation(player, "chunk.enter.town_sub").replace("{town}", currentTown.name),
+                    )
+                    sendTownMessageAlready[player] = true
                 }
-                ChatUtil.sendActionBar(player, TranslateYML.get(player).getString("actionBar").replace("{town}", currentTown.getName()));
+                sendActionBar(player, TranslateYML.getTranslation(player, "chunk.action_bar").replace("{town}", currentTown.name))
             } else {
-                actionBarActive.put(player, false);
-                ChatUtil.sendActionBar(player, "");
+                actionBarActive[player] = false
+                sendActionBar(player, "")
             }
 
             // Обновить последний известный город игрока
-            playerTownMap.put(player, currentTown);
+            playerTownMap[player] = currentTown
         }
     }
+    fun sendTitle(player: Player, title: String, subtitle: String) {
+        player.sendTitle(TextUtil.colorize(title), TextUtil.colorize(subtitle), 10, 20, 10)
+    }
+    fun sendActionBar(player: Player, message: String) {
+        player.spigot().sendMessage(ChatMessageType.ACTION_BAR, TextComponent(TextUtil.colorize(message)))
+    }
+
 }

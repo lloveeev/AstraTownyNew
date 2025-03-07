@@ -1,52 +1,50 @@
-package dev.loveeev.astratowny.utils;
+package dev.loveeev.astratowny.utils
 
-public class Colors {
-
+object Colors {
     /*
      * Legacy colors
      */
-    public static final String Black = "§0";       // black
-    public static final String Navy = "§1";        // dark_blue
-    public static final String Green = "§2";       // dark_green
-    public static final String Blue = "§3";        // dark_aqua
-    public static final String Red = "§4";         // dark_red
-    public static final String Purple = "§5";      // dark_purple
-    public static final String Gold = "§6";        // gold
-    public static final String LightGray = "§7";   // gray
-    public static final String Gray = "§8";        // dark_gray
-    public static final String DarkPurple = "§9";  // blue
-    public static final String LightGreen = "§a";  // green
-    public static final String LightBlue = "§b";   // aqua
-    public static final String Rose = "§c";        // red
-    public static final String LightPurple = "§d"; // light_purple
-    public static final String Yellow = "§e";      // yellow
-    public static final String White = "§f";       // white
+    const val Black: String = "§0" // black
+    const val Navy: String = "§1" // dark_blue
+    const val Green: String = "§2" // dark_green
+    const val Blue: String = "§3" // dark_aqua
+    const val Red: String = "§4" // dark_red
+    const val Purple: String = "§5" // dark_purple
+    const val Gold: String = "§6" // gold
+    const val LightGray: String = "§7" // gray
+    const val Gray: String = "§8" // dark_gray
+    const val DarkPurple: String = "§9" // blue
+    const val LightGreen: String = "§a" // green
+    const val LightBlue: String = "§b" // aqua
+    const val Rose: String = "§c" // red
+    const val LightPurple: String = "§d" // light_purple
+    const val Yellow: String = "§e" // yellow
+    const val White: String = "§f" // white
 
     /*
      * Minimessage colors
      */
-    public static final String DARK_RED = "<dark_red>";
-    public static final String RED = "<red>";
-    public static final String GOLD = "<gold>";
-    public static final String YELLOW = "<yellow>";
-    public static final String DARK_GREEN = "<dark_green>";
-    public static final String GREEN = "<green>";
-    public static final String DARK_AQUA = "<dark_aqua>";
-    public static final String AQUA = "<aqua>";
-    public static final String DARK_BLUE = "<dark_blue>";
-    public static final String BLUE = "<blue>";
-    public static final String LIGHT_PURPLE = "<light_purple>";
-    public static final String DARK_PURPLE = "<dark_purple>";
-    public static final String WHITE = "<white>";
-    public static final String GRAY = "<gray>";
-    public static final String DARK_GRAY = "<dark_gray>";
-    public static final String BLACK = "<black>";
+    const val DARK_RED: String = "<dark_red>"
+    const val RED: String = "<red>"
+    const val GOLD: String = "<gold>"
+    const val YELLOW: String = "<yellow>"
+    const val DARK_GREEN: String = "<dark_green>"
+    const val GREEN: String = "<green>"
+    const val DARK_AQUA: String = "<dark_aqua>"
+    const val AQUA: String = "<aqua>"
+    const val DARK_BLUE: String = "<dark_blue>"
+    const val BLUE: String = "<blue>"
+    const val LIGHT_PURPLE: String = "<light_purple>"
+    const val DARK_PURPLE: String = "<dark_purple>"
+    const val WHITE: String = "<white>"
+    const val GRAY: String = "<gray>"
+    const val DARK_GRAY: String = "<dark_gray>"
+    const val BLACK: String = "<black>"
 
-    public static final String OBFUSCATED = "<obfuscated>";
-    public static final String BOLD = "<bold>";
-    public static final String STRIKETHROUGH = "<strikethrough>";
-    public static final String UNDERLINED = "<underlined>";
-    public static final String ITALIC = "<italic>";
-    public static final String RESET = "<reset>";
+    const val OBFUSCATED: String = "<obfuscated>"
+    const val BOLD: String = "<bold>"
+    const val STRIKETHROUGH: String = "<strikethrough>"
+    const val UNDERLINED: String = "<underlined>"
+    const val ITALIC: String = "<italic>"
+    const val RESET: String = "<reset>"
 }
-

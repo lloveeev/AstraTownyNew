@@ -2,13 +2,11 @@ package dev.loveeev.astratowny.events.townblocks
 
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
-import lombok.Getter
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
-@Getter
-class TownBlockCreateEvent(private val town: Town, chunk: TownBlock) : Event(), Cancellable {
+class TownBlockCreateEvent(val town: Town, chunk: TownBlock) : Event(), Cancellable {
 
     private var cancelled = false // Track whether the event has been cancelled
 

@@ -7,7 +7,7 @@ import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
 class NationTownLeave // Default to not cancelled
-    (@field:Getter private val town: Town) : Event(), Cancellable {
+    (val town: Town) : Event(), Cancellable {
     private var isCancelled = false
 
     override fun getHandlers(): HandlerList {

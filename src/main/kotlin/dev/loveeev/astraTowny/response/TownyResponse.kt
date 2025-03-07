@@ -4,11 +4,6 @@ import dev.loveeev.astratowny.events.response.ResponseFailEvent
 import dev.loveeev.astratowny.events.response.ResponseSuccessEvent
 import dev.loveeev.utils.BukkitUtils
 
-enum class Status {
-    SUCCESS,
-    FAILURE
-}
-
 data class TownyResponse(val status: Status, val message: String) {
 
     val isSuccess: Boolean get() = status == Status.SUCCESS
@@ -24,4 +19,9 @@ data class TownyResponse(val status: Status, val message: String) {
             return TownyResponse(Status.FAILURE, message)
         }
     }
+}
+
+enum class Status {
+    SUCCESS,
+    FAILURE
 }

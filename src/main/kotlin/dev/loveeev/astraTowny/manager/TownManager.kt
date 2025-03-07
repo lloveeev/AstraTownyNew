@@ -43,11 +43,12 @@ object TownManager {
 
     fun getTown(resident: Resident) = resident.town
     fun getTown(player: Player) = getResident(player)?.town
+    fun getTown(name: String): Town? = towns.values.find { it.name == name }
 
 
     fun getNation(player: Player) = getResident(player)?.nation
     fun getNation(resident: Resident) = resident.nation
-
+    fun getNation(name: String): Nation? = nations.values.find { it.name == name }
 
     fun getResident(uuid: UUID) = residents.find { it.uuid == uuid }
     fun getResident(player: Player) = residents.find { it.uuid == player.uniqueId }

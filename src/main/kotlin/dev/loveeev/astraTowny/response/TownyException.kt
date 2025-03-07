@@ -1,12 +1,7 @@
-package dev.loveeev.astratowny.response;
+package dev.loveeev.astratowny.response
 
-public class TownyException extends RuntimeException {
+class TownyException : RuntimeException {
+    constructor(message: String?) : super(message)
 
-    public TownyException(String message) {
-        super(message);
-    }
-
-    public TownyException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    constructor(message: String?, cause: Throwable?) : super(message, cause)
 }
