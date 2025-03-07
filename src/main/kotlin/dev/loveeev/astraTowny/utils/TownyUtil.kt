@@ -1,5 +1,12 @@
 package dev.loveeev.astratowny.utils
 
+import dev.loveeev.astratowny.database.SQL
+import dev.loveeev.astratowny.database.SchemeSQL
+import dev.loveeev.astratowny.events.nation.NationCreateEvent
+import dev.loveeev.astratowny.events.nation.NationDeleteEvent
+import dev.loveeev.astratowny.events.nation.NationTownJoin
+import dev.loveeev.astratowny.events.nation.NationTownLeave
+import dev.loveeev.astratowny.events.resident.*
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Nation
 import dev.loveeev.astratowny.objects.Resident
@@ -11,16 +18,21 @@ import dev.loveeev.astratowny.response.TownyResponse
 import dev.loveeev.utils.BukkitUtils
 import org.bukkit.entity.Player
 import java.util.*
-import dev.loveeev.astratowny.events.*
-import dev.loveeev.astratowny.database.*
+import dev.loveeev.astratowny.events.town.TownCreateEvent
+import dev.loveeev.astratowny.events.town.TownDeleteEvent
+import dev.loveeev.astratowny.events.townblocks.TownBlockCreateEvent
+import dev.loveeev.astratowny.events.townblocks.TownBlockDeleteEvent
+import dev.loveeev.astratowny.objects.townblocks.HomeBlock
+import org.bukkit.Location
+import org.bukkit.World
 
 object TownyUtil {
 
     //Много-поток йоуу
-    private fun <T> synchronizedMap(map: MutableMap<UUID, T>, action: () -> T): T {
-        return synchronized(map) { action() }
-
+    private fun <K, V> synchronizedMap(map: MutableMap<K, V>, action: () -> Unit) {
+        synchronized(map) { action() }
     }
+
 
     /**
      * Deletes a town from the database.
@@ -32,7 +44,7 @@ object TownyUtil {
     fun deleteTownInDataBase(town: Town?): TownyResponse {
         town ?: return TownyResponse.failure("Town cannot be null.")
         return try {
-            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.TABLE_PREFIX}TOWNS WHERE uuid = ?", town.uuid)
+            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.tablePrefix}TOWNS WHERE uuid = ?", town.uuid)
             TownyResponse.success("Town deleted successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to delete town from database.", e)
@@ -49,7 +61,7 @@ object TownyUtil {
     fun deleteTownBlockInDataBase(tb: TownBlock?): TownyResponse {
         tb ?: return TownyResponse.failure("TownBlock cannot be null.")
         return try {
-            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.TABLE_PREFIX}TOWNBLOCKS WHERE X = ? AND Z = ?", tb.x, tb.z)
+            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.tablePrefix}TOWNBLOCKS WHERE X = ? AND Z = ?", tb.x, tb.z)
             TownyResponse.success("TownBlock deleted successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to delete town block from database.", e)
@@ -66,7 +78,7 @@ object TownyUtil {
     fun deleteNationInDataBase(nation: Nation?): TownyResponse {
         nation ?: return TownyResponse.failure("Nation cannot be null.")
         return try {
-            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.TABLE_PREFIX}NATIONS WHERE uuid = ?", nation.uuid)
+            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.tablePrefix}NATIONS WHERE uuid = ?", nation.uuid)
             TownyResponse.success("Nation deleted successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to delete nation from database.", e)
@@ -83,7 +95,7 @@ object TownyUtil {
     fun deleteResidentInDataBase(resident: Resident?): TownyResponse {
         resident ?: return TownyResponse.failure("Resident cannot be null.")
         return try {
-            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.TABLE_PREFIX}RESIDENTS WHERE uuid = ?", resident.uuid.toString())
+            SQL.executeUpdateAsync("DELETE FROM ${SchemeSQL.tablePrefix}RESIDENTS WHERE uuid = ?", resident.uuid.toString())
             TownyResponse.success("Resident deleted successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to delete resident from database.", e)
@@ -103,8 +115,8 @@ object TownyUtil {
                 return TownyResponse.failure("Resident creation event canceled.")
             }
             return try {
-                synchronizedMap(TownManager.getInstance().residents) {
-                    TownManager.getInstance().residents[player.uniqueId] = resident
+                synchronized(TownManager.residents) {
+                    TownManager.residents.add(resident)
                 }
                 TownyResponse.success("Resident created successfully.")
             } catch (e: Exception) {
@@ -126,7 +138,7 @@ object TownyUtil {
         if (uuid == null) return TownyResponse.failure("Town UUID cannot be null.")
 
         return try {
-            val existingTown = TownManager.getInstance().getTown(name)
+            val existingTown = TownManager.getTown(name)
             if (existingTown != null) return TownyResponse.failure("A town with this name already exists.")
 
             val town = Town(name, uuid).apply {
@@ -134,7 +146,8 @@ object TownyUtil {
                     val response = createTownBlock(it.world, this, it.x, it.z)
                     if (response.isSuccess) {
                         this.homeBlock = it
-                        this.addClaimedChunk(TownManager.getInstance().getTownBlock(WorldCoord(it.world, it.x, it.z)))
+                        TownManager.getTownBlock(WorldCoord(it.world, it.x, it.z))
+                            ?.let { it1 -> this.addClaimedChunk(it1) }
                     } else {
                         BukkitUtils.logToConsole(response.message)
                     }
@@ -154,14 +167,16 @@ object TownyUtil {
                 } ?: BukkitUtils.logToConsole("Created town without a mayor.")
             }
 
-            synchronizedMap(TownManager.getInstance().towns) {
-                TownManager.getInstance().towns[town.uuid] = town
+            synchronizedMap(TownManager.towns) {
+                TownManager.towns[town.uuid] = town
             }
             TownyResponse.success("Town created successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to create town.", e)
         }
     }
+
+
 
     /**
      * Creates a new nation and adds it to the TownManager.
@@ -178,7 +193,7 @@ object TownyUtil {
         if (uuid == null) return TownyResponse.failure("Nation UUID cannot be null.")
 
         return try {
-            val existingNation = TownManager.getInstance().getNation(name)
+            val existingNation = TownManager.getNation(name)
             if (existingNation != null) return TownyResponse.failure("A nation with this name already exists.")
 
             val nation = Nation(name, uuid, resident, capital).apply {
@@ -202,14 +217,16 @@ object TownyUtil {
                 return TownyResponse.failure("Nation creation event canceled.")
             }
 
-            synchronizedMap(TownManager.getInstance().nations) {
-                TownManager.getInstance().nations[nation.uuid] = nation
+            synchronizedMap(TownManager.nations) {
+                TownManager.nations[nation.uuid] = nation
             }
             TownyResponse.success("Nation created successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to create nation.", e)
         }
     }
+
+
 
     /**
      * Creates a new town block and adds it to the TownManager.
@@ -223,22 +240,26 @@ object TownyUtil {
      */
     fun createTownBlock(world: World, town: Town, x: Int, z: Int): TownyResponse {
         return try {
-            val tb = TownBlocks(x, z, town, world)
-            if (TownManager.getInstance().getTownBlock(WorldCoord.parseWorldCoord(world.name, x, z)) != null) {
+            val tb = TownBlock(x, z, town, world)
+            if (TownManager.getTownBlock(WorldCoord.parseWorldCoord(world, x, z)) != null) {
                 return TownyResponse.failure("Error creating town block (already exists).")
             }
             if (BukkitUtils.isEventCanceled(TownBlockCreateEvent(town, tb))) {
                 return TownyResponse.failure("Town block creation event canceled.")
             }
 
-            synchronizedMap(TownManager.getInstance().townBlocks) {
-                TownManager.getInstance().townBlocks[WorldCoord(world, x, z)] = tb
+            // Исправление: использован правильный тип для синхронизации
+            synchronizedMap(TownManager.townBlocks) {
+                TownManager.townBlocks[WorldCoord(world, x, z)] = tb
             }
+
             TownyResponse.success("Town block created successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to create town block.", e)
         }
     }
+
+
 
 
     /**
@@ -259,19 +280,19 @@ object TownyUtil {
                 return TownyResponse.failure("Resident failed save into DataBase")
             }
             if (resident.isKing) {
-                val response = deleteNation(resident.nation)
+                val response = deleteNation(resident.nation!!)
                 if (!response.isSuccess) {
                     BukkitUtils.logToConsole(response.message)
                 }
             }
             if (resident.isMayor) {
-                val response = deleteTown(resident.town)
+                val response = deleteTown(resident.town!!)
                 if (!response.isSuccess) {
                     BukkitUtils.logToConsole(response.message)
                 }
             }
-            synchronizedMap(TownManager.getInstance().residents) {
-                TownManager.getInstance().residents.remove(resident.uuid)
+            synchronized(TownManager.residents) {
+                TownManager.residents.remove(resident)
             }
             TownyResponse.success("Resident deleted successfully.")
         } catch (e: Exception) {
@@ -327,14 +348,14 @@ object TownyUtil {
                         BukkitUtils.logToConsole(response.message)
                     }
                     town.townBlocks.remove(coord)
-                    synchronized(TownManager.getInstance().townBlocks) {
-                        TownManager.getInstance().townBlocks.remove(coord)
+                    synchronized(TownManager.townBlocks) {
+                        TownManager.townBlocks.remove(coord)
                     }
                 }
             }
 
-            synchronized(TownManager.getInstance().towns) {
-                TownManager.getInstance().towns.remove(town.uuid)
+            synchronized(TownManager.towns) {
+                TownManager.towns.remove(town.uuid)
             }
 
             TownyResponse.success("Town deleted successfully.")
@@ -372,11 +393,11 @@ object TownyUtil {
                         townsToRemove.add(town)
                     }
                 }
-                nation.towns.removeAll(townsToRemove)
+                nation.towns.removeAll(townsToRemove.toSet())
             }
 
             BukkitUtils.logToConsole(test.message)
-            TownManager.getInstance().nations.remove(nation.uuid)
+            TownManager.nations.remove(nation.uuid)
             TownyResponse.success("Nation deleted successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to delete nation.", e)
@@ -402,18 +423,16 @@ object TownyUtil {
             }
 
             synchronized(tb.town.townBlocks) {
-                if (tb.hasTown) {
-                    if (!tb.isHomeBlock) {
+                if (!tb.isHomeBlock) {
                         tb.town.removeClaimedChunk(tb)
                     } else {
-                        tb.town.homeBlock = null
-                        tb.town.removeClaimedChunk(tb)
-                    }
+                    tb.town.homeBlock = null
+                    tb.town.removeClaimedChunk(tb)
                 }
             }
 
-            synchronized(TownManager.getInstance().townBlocks) {
-                TownManager.getInstance().townBlocks.remove(WorldCoord(tb.world, tb.x, tb.z))
+            synchronized(TownManager.townBlocks) {
+                TownManager.townBlocks.remove(WorldCoord(tb.world, tb.x, tb.z))
             }
 
             TownyResponse.success("TownBlock deleted successfully.")
@@ -430,13 +449,14 @@ object TownyUtil {
      * @return A TownyResponse indicating success or failure. (Ответ Towny, указывающий на успех или неудачу.)
      * @throws TownyException If there is an error during the addition process. (Если произошла ошибка во время процесса добавления.)
      */
-    fun addResidentInTown(resident: Resident, town: Town): TownyResponse {
+    fun addResidentInTown(resident: Resident?, town: Town?): TownyResponse {
         return try {
-            if (BukkitUtils.isEventCanceled(ResidentTownJoin(resident))) {
-                return TownyResponse.failure("Resident join town event canceled.")
-            }
             if (resident == null || town == null) {
                 return TownyResponse.failure("Resident or town cannot be null.")
+            }
+
+            if (BukkitUtils.isEventCanceled(ResidentTownJoin(resident))) {
+                return TownyResponse.failure("Resident join town event canceled.")
             }
 
             synchronized(town.residents) {
@@ -466,7 +486,7 @@ object TownyUtil {
      * @return A TownyResponse indicating success or failure. (Ответ Towny, указывающий на успех или неудачу.)
      * @throws TownyException If there is an error during the addition process. (Если произошла ошибка во время процесса добавления.)
      */
-    fun addTownInNation(town: Town, nation: Nation): TownyResponse {
+    fun addTownInNation(town: Town?, nation: Nation?): TownyResponse {
         return try {
             if (town == null) {
                 return TownyResponse.failure("Town == NULL")
@@ -513,14 +533,16 @@ object TownyUtil {
      * @return A TownyResponse indicating success or failure. (Ответ Towny, указывающий на успех или неудачу.)
      * @throws TownyException If there is an error during the addition process. (Если произошла ошибка во время процесса добавления.)
      */
-    fun addResidentInNation(resident: Resident, nation: Nation): TownyResponse {
+    fun addResidentInNation(resident: Resident?, nation: Nation?): TownyResponse {
         return try {
-            if (BukkitUtils.isEventCanceled(ResidentNationJoinEvent(resident))) {
-                return TownyResponse.failure("Resident join nation event canceled.")
-            }
             if (nation == null || resident == null) {
                 return TownyResponse.failure("Nation or resident cannot be null.")
             }
+
+            if (BukkitUtils.isEventCanceled(ResidentNationJoinEvent(resident))) {
+                return TownyResponse.failure("Resident join nation event canceled.")
+            }
+
 
             synchronized(nation.residents) {
                 if (nation.residents.contains(resident)) {
@@ -584,12 +606,14 @@ object TownyUtil {
      */
     fun removeResidentInTown(resident: Resident?): TownyResponse {
         return try {
-            if (BukkitUtils.isEventCanceled(ResidentTownLeave(resident))) {
-                return TownyResponse.failure("Resident leave town event canceled.")
-            }
             if (resident == null || !resident.hasTown) {
                 return TownyResponse.failure("Resident is not in a town.")
             }
+
+            if (BukkitUtils.isEventCanceled(ResidentTownLeave(resident))) {
+                return TownyResponse.failure("Resident leave town event canceled.")
+            }
+
 
             if (resident.isMayor) {
                 if (resident == resident.town?.mayor) {
@@ -692,5 +716,13 @@ object TownyUtil {
         } catch (e: Exception) {
             throw TownyException("Failed to add residents to nation", e)
         }
+    }
+
+    fun setMayor(it: Resident): TownyResponse {
+        TODO("Not yet implemented")
+    }
+
+    fun setKing(it: Resident): TownyResponse {
+        TODO("Not yet implemented")
     }
 }

@@ -8,7 +8,7 @@ import java.util.logging.Level
 
 object SchemeSQL {
 
-    private val tablePrefix = DatabaseYML.getConfig().getString("sql.table_prefix")
+    val tablePrefix = DatabaseYML.getConfig().getString("sql.table_prefix")
 
     fun loadTable() {
         try {
