@@ -29,6 +29,7 @@ town:
     confirm: "Успешное удаление города."
   transfer:
     command: "Используйте /t transfer <никнейм> кому хотите передать права."
+    error: "У вас не совпадают города!"
     success: "Вы успешно передали права."
   set:
     name:
@@ -37,6 +38,10 @@ town:
     map_color:
       command: "Используйте /t set mapcolor <цвет>"
       success: "Вы сменили цвет на {mapcolor}."
+    spawn:
+      command: "Используйте /t set spawn"
+      success: "Вы установили новый спавн города."
+    args: "Используйте /t set args"
   kick:
     command: "Используйте /t kick <Игрок>"
     success: "Вы успешно изгнали игрока."
@@ -50,12 +55,12 @@ town:
     success: "Вы расприватили чанк города."
     home_block_error: "Вы не можете расприватить Хоумблок."
     not_part_of_town: "Этот чанк не является частью города."
-  spawn:
-    set: "Вы установили новый спавн города."
   home_block:
     set: "Вы установили новый Хоумблок города."
     already_set: "Этот чанк уже является Хоумблоком."
-
+  flags:
+    success: "Вы успешно установили флаг."
+    args: "Используйте /t toggle PERMTYPE true/false"
 # Сообщения для нации
 nation:
   create:

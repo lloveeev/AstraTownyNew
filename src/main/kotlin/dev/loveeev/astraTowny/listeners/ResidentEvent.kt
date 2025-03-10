@@ -1,4 +1,4 @@
-package dev.loveeev.astraTowny.listeners
+package dev.loveeev.astratowny.listeners
 
 import dev.loveeev.astratowny.AstraTowny
 import dev.loveeev.astratowny.chat.Messages
@@ -16,9 +16,6 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 
 class ResidentEvent : Listener {
-    init {
-        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
-    }
 
     @EventHandler
     fun debugFalse(event: ResponseFailEvent) {

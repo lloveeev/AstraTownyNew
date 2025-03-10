@@ -10,9 +10,12 @@ class NationCreateEvent // Default to not cancelled
     (val nation: Nation) : Event(), Cancellable {
     private var isCancelled = false
 
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
+
 
     override fun isCancelled(): Boolean {
         return isCancelled
@@ -22,7 +25,4 @@ class NationCreateEvent // Default to not cancelled
         this.isCancelled = cancel
     }
 
-    companion object {
-        val handlerList: HandlerList = HandlerList()
-    }
 }

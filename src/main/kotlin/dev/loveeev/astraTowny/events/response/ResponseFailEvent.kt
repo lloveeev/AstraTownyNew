@@ -5,11 +5,10 @@ import org.bukkit.event.HandlerList
 
 
 class ResponseFailEvent(val message: String) : Event() {
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
 
-    companion object {
-        val handlerList: HandlerList = HandlerList()
-    }
 }

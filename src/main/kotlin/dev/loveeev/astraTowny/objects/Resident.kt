@@ -15,11 +15,10 @@ data class Resident(
 ) {
     val isKing: Boolean = false
     val isMayor: Boolean = false
+    val player: Player = Bukkit.getOfflinePlayer(playerName) as Player
     val isOnline: Boolean get() = Bukkit.getPlayer(uuid)?.isOnline ?: false
     val hasNation: Boolean get() = nation != null
     val hasTown: Boolean get() = town != null
-
-    fun getPlayer(): Player? = Bukkit.getPlayer(uuid)
 
     fun addInvitation(townName: String) = invitations.add(townName)
     fun removeInvitation(townName: String) = invitations.remove(townName)

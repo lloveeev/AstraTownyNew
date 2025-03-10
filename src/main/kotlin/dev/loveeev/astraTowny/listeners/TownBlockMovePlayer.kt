@@ -20,9 +20,6 @@ class TownBlockMovePlayer : Listener {
     private val sendTownMessageAlready = mutableMapOf<Player, Boolean>()
     private val actionBarActive = mutableMapOf<Player, Boolean>()
 
-    init {
-        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
-    }
 
     @EventHandler
     fun onBlockInteract(event: PlayerMoveEvent) {

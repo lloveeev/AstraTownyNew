@@ -9,6 +9,8 @@ import org.bukkit.event.HandlerList
 class NationTownJoin(val town: Town) : Event(), Cancellable {
     private var isCancelled = false
 
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
@@ -19,9 +21,5 @@ class NationTownJoin(val town: Town) : Event(), Cancellable {
 
     override fun setCancelled(cancel: Boolean) {
         this.isCancelled = cancel
-    }
-
-    companion object {
-        val handlerList: HandlerList = HandlerList()
     }
 }

@@ -14,10 +14,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 
 class TownBlockFlags : Listener {
 
-    init {
-        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
-    }
-
     @EventHandler
     fun onExplosionTown(event: EntityExplodeEvent) {
         val location = event.location

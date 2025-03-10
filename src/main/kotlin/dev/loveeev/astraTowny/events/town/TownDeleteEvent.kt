@@ -6,11 +6,7 @@ import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
 
 class TownDeleteEvent(val town: Town) : Event(), Cancellable {
-    private var cancelled = false // Track whether the event has been cancelled
-
-    override fun getHandlers(): HandlerList {
-        return handlerList
-    }
+    private var cancelled = false
 
     override fun isCancelled(): Boolean {
         return cancelled
@@ -19,8 +15,10 @@ class TownDeleteEvent(val town: Town) : Event(), Cancellable {
     override fun setCancelled(cancel: Boolean) {
         this.cancelled = cancel
     }
+    val handlerList: HandlerList = HandlerList()
 
-    companion object {
-        val handlerList: HandlerList = HandlerList()
+    override fun getHandlers(): HandlerList {
+        return handlerList
     }
+
 }

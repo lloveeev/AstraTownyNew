@@ -21,7 +21,8 @@ object SchemeSQL {
                             "capital VARCHAR(255)," +
                             "king VARCHAR(255)," +
                             "balance VARCHAR(255)," +
-                            "mapcolor VARCHAR(6))",
+                            "mapcolor VARCHAR(6)," +
+                            "towns VARCHAR(255))",
                     "Table NATIONS created successfully.")
 
                 createTableIfNotExists(connection, "${tablePrefix}TOWNS",
@@ -33,7 +34,8 @@ object SchemeSQL {
                             "homeblock VARCHAR(255)," +
                             "spawn VARCHAR(255)," +
                             "balance VARCHAR(255)," +
-                            "mapcolor VARCHAR(255))",
+                            "mapcolor VARCHAR(255)," +
+                            "residents VARCHAR(255))",
                     "Table TOWNS created successfully.")
 
                 createTableIfNotExists(connection, "${tablePrefix}RESIDENTS",
@@ -42,11 +44,7 @@ object SchemeSQL {
                             "playername VARCHAR(255)," +
                             "town VARCHAR(255)," +
                             "nation VARCHAR(255)," +
-                            "townranks VARCHAR(255)," +
-                            "nationranks VARCHAR(255)," +
-                            "language VARCHAR(255)," +
-                            "permissionstown LONGTEXT," +
-                            "permissionsnation LONGTEXT)",
+                            "language VARCHAR(255))",
                     "Table RESIDENTS created successfully.")
 
                 createTableIfNotExists(connection, "${tablePrefix}TOWNBLOCKS",

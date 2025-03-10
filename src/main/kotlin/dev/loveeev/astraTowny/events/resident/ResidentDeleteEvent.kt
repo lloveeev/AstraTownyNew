@@ -17,11 +17,10 @@ class ResidentDeleteEvent(val resident: Resident) : Event(), Cancellable {
         this.cancelled = cancelled
     }
 
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
 
-    companion object {
-        val handlerList: HandlerList = HandlerList()
-    }
 }

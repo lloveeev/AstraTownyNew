@@ -8,9 +8,12 @@ import org.bukkit.event.HandlerList
 class ResidentTownLeave(val resident: Resident) : Event(), Cancellable {
     private var cancelled = false // Track whether the event has been cancelled
 
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
+
 
     override fun isCancelled(): Boolean {
         return cancelled
@@ -18,9 +21,5 @@ class ResidentTownLeave(val resident: Resident) : Event(), Cancellable {
 
     override fun setCancelled(cancel: Boolean) {
         this.cancelled = cancel
-    }
-
-    companion object {
-        val handlerList: HandlerList = HandlerList()
     }
 }

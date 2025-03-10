@@ -17,6 +17,7 @@ data class Town(
     var spawnLocation: Location? = null,
     var mapColor: String? = null,
     var homeBlock: HomeBlock? = null,
+    var balance: Float = 0f,
     val residents: ObjectArrayList<Resident> = ObjectArrayList(),
     val invitations: ObjectArrayList<String> = ObjectArrayList(),
     val townBlocks: ConcurrentHashMap<WorldCoord, TownBlock> = ConcurrentHashMap(),

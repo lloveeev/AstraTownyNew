@@ -15,10 +15,6 @@ import org.bukkit.event.player.PlayerInteractEvent
 
 class TownBlockInteract : Listener {
 
-    init {
-        Bukkit.getPluginManager().registerEvents(this, AstraTowny.instance)
-    }
-
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val player = event.player

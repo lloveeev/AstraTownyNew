@@ -47,6 +47,11 @@ data class WorldCoord(
             return WorldCoord(world, toCell(homeBlock.x), toCell(homeBlock.z))
         }
 
+        fun parseWorldCoord(homeBlock: TownBlock): WorldCoord {
+            val world = homeBlock.world
+            return WorldCoord(world, toCell(homeBlock.x), toCell(homeBlock.z))
+        }
+
         fun parseWorldCoord(block: Block): WorldCoord {
             return WorldCoord(block.world, toCell(block.x), toCell(block.z))
         }

@@ -10,9 +10,12 @@ class TownBlockDeleteEvent(val town: Town, chunk: TownBlock) : Event(), Cancella
 
     private var cancelled = false // Track whether the event has been cancelled
 
+    val handlerList: HandlerList = HandlerList()
+
     override fun getHandlers(): HandlerList {
         return handlerList
     }
+
 
     override fun isCancelled(): Boolean {
         return cancelled
@@ -20,9 +23,5 @@ class TownBlockDeleteEvent(val town: Town, chunk: TownBlock) : Event(), Cancella
 
     override fun setCancelled(cancel: Boolean) {
         this.cancelled = cancel
-    }
-
-    companion object {
-        val handlerList: HandlerList = HandlerList()
     }
 }
