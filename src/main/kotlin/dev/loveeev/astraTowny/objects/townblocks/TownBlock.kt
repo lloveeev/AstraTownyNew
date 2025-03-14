@@ -10,6 +10,10 @@ data class TownBlock(
     val world: World
 ) {
 
+    override fun toString(): String {
+        return "x: $x z: $z"
+    }
+
     val isHomeBlock: Boolean
         get() {
             return town.homeBlock?.let { homeBlock ->

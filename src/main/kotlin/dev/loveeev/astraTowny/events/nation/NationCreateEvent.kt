@@ -10,12 +10,20 @@ class NationCreateEvent // Default to not cancelled
     (val nation: Nation) : Event(), Cancellable {
     private var isCancelled = false
 
-    val handlerList: HandlerList = HandlerList()
+    companion object {
+        // Статический метод getHandlerList
+        @JvmStatic
+        fun getHandlerList(): HandlerList {
+            return HANDLER_LIST
+        }
 
-    override fun getHandlers(): HandlerList {
-        return handlerList
+        // Статическая переменная HandlerList
+        val HANDLER_LIST = HandlerList()
     }
 
+    override fun getHandlers(): HandlerList {
+        return HANDLER_LIST
+    }
 
     override fun isCancelled(): Boolean {
         return isCancelled

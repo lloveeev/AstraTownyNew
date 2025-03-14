@@ -1,26 +1,23 @@
-/*package dev.loveeev.astratowny.commands.main
+package dev.loveeev.astratowny.commands.main
 
 
 import dev.loveeev.astratowny.chat.Messages
-import dev.loveeev.astratowny.config.TranslateYML
-import dev.loveeev.astratowny.objects.townblocks.HomeBlock
-
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.HomeBlock
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
 import dev.loveeev.astratowny.utils.TownyUtil
-import net.md_5.bungee.api.ChatColor
+import dev.loveeev.utils.TextUtil
+import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.command.*
 import org.bukkit.entity.Player
-import org.bukkit.inventory.ItemStack
 import java.util.*
 
 class TownyCommand : TabExecutor {
@@ -49,19 +46,29 @@ class TownyCommand : TabExecutor {
                 "spawn" -> handleSpawn(resident, sender)
                 "accept" -> handleAcceptInvite(args, resident, sender)
                 "invite" -> handleInvite(args, resident, sender)
-                "claim" -> handleClaim(resident)
-                "unclaim" -> handleUnClaim(resident)
+                "claim" -> handleClaim(resident, sender)
+                "unclaim" -> handleUnClaim(resident, sender)
                 "set" -> handleSet(args, resident, sender)
-                "kick" -> handleKick(resident, args)
+                "kick" -> handleKick(resident, args, sender)
                 "transfer" -> handleTransfer(resident,sender, args)
-                "toggle" -> flagControl(args, resident)
-                else -> Messages.send(sender, "command_exit")
+                "toggle" -> flagControl(args, resident, sender)
+                else -> handleDefaultCommand(args, resident, sender)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             return true
         }
         return true
+    }
+
+    private fun handleDefaultCommand(args: Array<out String>, resident: Resident, sender: Player) {
+        val town = TownManager.getTown(args[0])
+        if(town != null){
+            Messages.sendMessage(sender, "${town.name} ${if(town.hasNation) town.nation?.name else " "}" )
+        } else{
+            Messages.sendMessage(sender, "ну нет такого города брат")
+        }
+
     }
 
     private fun handleSpawn(resident: Resident, sender: Player) {
@@ -101,19 +108,21 @@ class TownyCommand : TabExecutor {
         Messages.send(sender,"town.transfer.success")
     }
 
+
     private fun handleSet(args: Array<out String>, resident: Resident, player: Player) {
         if (args.size < 2) {
             Messages.send(player,"town.set.args")
             return
         }
         when (args[1]) {
-            "homeblock" -> setHomeBlock(resident)
-            "spawn" -> setSpawn(resident)
-            "mapcolor" -> setMapColor(resident, args)
-            "name" -> setName(resident, args)
+            "homeblock" -> setHomeBlock(resident, player)
+            "spawn" -> setSpawn(resident, player)
+            "mapcolor" -> setMapColor(resident, args, player)
+            "name" -> setName(resident, args, player)
             else -> Messages.send(player, "command_exit")
         }
     }
+
 
     private fun flagControl(args: Array<out String>, resident: Resident, sender: Player) {
         if (args.size < 3) {
@@ -133,125 +142,140 @@ class TownyCommand : TabExecutor {
             val permsType = Town.PermsType.valueOf(args[1])
             val flagValue = args[2].toBooleanStrictOrNull()
             if (flagValue == null) {
-                ChatUtil.sendSuccessNotification(resident, "Вы неверно указали true/false")
+                Messages.send(sender, "town.flags.error")
                 return
             }
-            resident.town.setEventStatus(permsType, flagValue)
-            Messages.se
+            resident.town?.setPermStatus(permsType, flagValue)
+            Messages.send(sender, "town.flags.success")
         } catch (e: IllegalArgumentException) {
-            ChatUtil.sendSuccessNotification(resident, Messages.flagExist(resident.player))
+            Messages.send(sender, "town.flags.error")
         }
     }
 
-    private fun handleKick(resident: Resident, args: Array<out String>) {
+    private fun handleKick(resident: Resident, args: Array<out String>, sender: Player) {
         if (args.size == 1) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.kickplayer(resident.player))
+            Messages.send(sender, "town.kick.command")
             return
         }
 
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_KICK")
-        val kickResident = TownManager.getInstance().getResident(args[1]) ?: run {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.playererror(resident.player))
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_KICK")
+        val kickResident = TownManager.getResident(args[1]) ?: run {
+            Messages.send(sender, "player_error")
             return
         }
         if (kickResident == resident) {
-            ChatUtil.sendSuccessNotification(resident, "Вы не можете кикнуть самого себя!")
+            Messages.send(sender, "self")
             return
         }
-        if (kickResident.hasTown() && kickResident.town == resident.town && !kickResident.isMayor) {
+
+        if(kickResident.town != resident.town){
+            Messages.send(sender, "town.kick.not_in_town")
+            return
+        }
+
+        if (kickResident.hasTown && !kickResident.isMayor) {
             TownyUtil.removeResidentInTown(kickResident)
-            ChatUtil.sendSuccessNotification(resident.player, Messages.kicksuc(resident.player))
-            ChatUtil.sendSuccessNotification(kickResident, "Вы были изгнаны.")
+            Messages.send(sender, "town.kick.success")
+            Messages.send(Bukkit.getOfflinePlayer(kickResident.playerName) as Player, "town.kick.kick_player")
         } else {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.notkickmayor(resident.player))
+            Messages.send(sender, "town.kick.not_mayor")
         }
     }
 
-    private fun setMapColor(resident: Resident, args: Array<out String>) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.townexist(resident.player))
+    private fun setMapColor(resident: Resident, args: Array<out String>, sender: Player) {
+        if (!resident.hasTown) {
+            Messages.send(sender, "message_town_exist")
             return
         }
         if (args.size == 2) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.setmapcolor(resident.player))
+            Messages.send(sender, "town.set.map_color.command")
             return
-        }
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_SET_MAPCOLOR")
-        resident.town.mapColor = args[2]
-        ChatUtil.sendSuccessNotification(resident.player, Messages.setmapcolorsuc(resident.player))
+        } 
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_SET_MAPCOLOR")
+        resident.town?.mapColor = args[2]
+        Messages.send(sender, "town.set.map_color.success")
     }
 
-    private fun setName(resident: Resident, args: Array<out String>) {
+    private fun setName(resident: Resident, args: Array<out String>, sender: Player) {
+        if (!resident.hasTown) {
+            Messages.send(sender, "message_town_exist")
+            return
+        }
+
         if (args.size == 2) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.setname(resident.player))
+            Messages.send(sender, "town.set.name.command")
             return
         }
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_SET_NAME")
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.townexist(resident.player))
-            return
-        }
-        resident.town.name = args[2]
-        ChatUtil.sendSuccessNotification(resident.player, Messages.setnamesuc(resident.player))
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_SET_NAME")
+        resident.town?.name = args[2]
+        Messages.send(sender, "town.set.name.success")
     }
 
-    private fun handleCreateTown(args: Array<out String>, player: Player, resident: Resident) {
+    private fun handleCreateTown(args: Array<out String>, sender: Player, resident: Resident) {
         if (args.size == 1) {
-            ChatUtil.sendSuccessNotification(player, Messages.createtown(player))
+            Messages.send(sender, "town.create.command")
             return
         }
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_CREATE")
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_CREATE")
 
-        val chunk = player.chunk
-        if (TownManager.getInstance().getTownBlock(chunk) != null) {
-            ChatUtil.sendSuccessNotification(player, Messages.alrclaim(player))
+        val chunk = sender.chunk
+        if (TownManager.getTownBlock(chunk) != null) {
+            Messages.send(sender, "town.claim.already_claimed")
             return
         }
 
-        if (!resident.hasTown()) {
-            val existingTown = TownManager.getInstance().getTown(args[0])
+        if (!resident.hasTown) {
+            val existingTown = TownManager.getTown(args[1])
             if (existingTown != null) {
-                ChatUtil.sendSuccessNotification(player, Messages.townalrexist(player))
+                 Messages.send(sender, "town.create.exist")
                 return
             }
-            TownyUtil.createTown(args[1], UUID.randomUUID(), resident, HomeBlock(chunk), player.location)
+            TownyUtil.createTown(args[1], UUID.randomUUID(), resident, HomeBlock(chunk), sender.location)
+        } else {
+            Messages.send(resident, "message_town_have")
         }
     }
 
     private fun handleInvite(args: Array<out String>, resident: Resident, player: Player) {
-        if (resident.hasTown()) {
-            TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_INVITE")
+        if (resident.hasTown) {
+            TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_INVITE")
             if (args.size == 1) {
-                ChatUtil.sendSuccessNotification(player, Messages.invite(player))
+                Messages.send(player, "permission")
                 return
             }
             if (args.size == 2) {
                 val invitedPlayerName = args[1]
                 val invitedPlayer = Bukkit.getPlayer(invitedPlayerName) ?: run {
-                    ChatUtil.sendSuccessNotification(player, Messages.playeroffline(player))
+                    Messages.send(player, "player_error")
+                    return
+                }
+                val invitedResident = TownManager.getResident(invitedPlayer)!!
+
+                if(invitedResident.hasTown) {
+                    Messages.send(player, "confirmation.invite.already_in_town")
                     return
                 }
 
-                val invitedResident = TownManager.getInstance().getResident(invitedPlayer)
-                if (invitedResident.hasTown() || invitedResident.hasInvitation(resident.town.name) || invitedResident == resident) {
-                    ChatUtil.sendSuccessNotification(player, Messages.alrinvitetown(player))
+                if(invitedResident.hasInvitation(resident.town?.name!!)) {
+                    Messages.send(player, "confirmation.invite.already_invited")
                     return
                 }
 
-                invitedResident.addInvitation(resident.town.name)
-                ChatUtil.sendSuccessNotification(player, "${Messages.invitesend(player)} $invitedPlayerName.")
+                resident.town?.name?.let { invitedResident.addInvitation(it) }
+                Messages.sendMessage(player, Messages.getMessage(player, "confirmation.invite.sent") + invitedPlayerName)
                 sendInviteMessage(invitedPlayer, resident)
             }
         } else {
-            ChatUtil.sendSuccessNotification(player, Messages.permissionerror(player))
+            Messages.send(player, "message_town_exist")
         }
     }
 
     private fun sendInviteMessage(invitedPlayer: Player, resident: Resident) {
-        val message = TextComponent(ChatUtil.getInstance().colorize(Messages.inviteaprove(invitedPlayer) + resident.town.name))
-        val confirmCommand = TextComponent(ChatColor.GREEN + " [/t accept ${resident.town.name}]").apply {
-            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t accept ${resident.town.name}")
-            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder(Messages.confirmation(invitedPlayer)).create())
+        val message = TextComponent(Messages.getMessage(invitedPlayer, "confirmation.invite.approve") + resident.town?.name)
+        val confirmCommand = TextComponent(" [/t accept ${resident.town?.name}]").apply {
+            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t accept ${resident.town?.name}")
+            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder(Messages.getMessage(invitedPlayer, "")).create())
         }
         message.addExtra(confirmCommand)
         invitedPlayer.spigot().sendMessage(ChatMessageType.CHAT, message)
@@ -259,7 +283,7 @@ class TownyCommand : TabExecutor {
 
     private fun handleAcceptInvite(args: Array<out String>, resident: Resident, player: Player) {
         if (args.size != 2) {
-            ChatUtil.sendSuccessNotification(player, Messages.accept(player))
+            Messages.send(player, "town.join.accept")
             return
         }
 
@@ -269,207 +293,201 @@ class TownyCommand : TabExecutor {
 
     private fun acceptInvitation(resident: Resident, townName: String, player: Player) {
         if (!resident.hasInvitation(townName)) {
-            ChatUtil.sendSuccessNotification(player, Messages.accepterror(player))
+            Messages.send(player, "town.join.accept_error")
             return
         }
-        val town = TownManager.getInstance().getTown(townName) ?: run {
-            ChatUtil.sendSuccessNotification(player, Messages.townexist(player))
+        val town = TownManager.getTown(townName) ?: run {
+            Messages.send(player, "message_town_exist")
             return
         }
         TownyUtil.addResidentInTown(resident, town)
         resident.removeInvitation(townName)
-        ChatUtil.sendSuccessNotification(player, Messages.acceptconfirm(player))
+        Messages.send(player, "town.join.accept_confirm")
     }
 
     private fun handleDeleteTown(args: Array<out String>, resident: Resident, player: Player) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(player, Messages.messagetownexist(player))
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
 
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_DELETE")
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_DELETE")
 
         when (args.size) {
             1 -> {
                 if (resident.isMayor) {
-                    val message = TextComponent(ChatUtil.getInstance().colorize(Messages.confirmation(player)))
-                    val confirmCommand = TextComponent(ChatColor.GREEN + "[/t delete confirm]").apply {
+                    val message = TextComponent(TextUtil.colorize(Messages.getMessage(player, "confirmation.text")!!))
+                    val confirmCommand = TextComponent("[/t delete confirm]").apply {
                         clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t delete confirm")
-                        hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder(Messages.confirmation(player)).create())
+                        hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder("").create())
                     }
                     message.addExtra(confirmCommand)
                     player.spigot().sendMessage(ChatMessageType.CHAT, message)
                 } else {
-                    ChatUtil.sendSuccessNotification(player, Messages.permissionerror(player))
+                    Messages.send(player, "permission")
                 }
             }
             2 -> {
                 if (args[1].equals("confirm", ignoreCase = true)) {
-                    deleteTown(resident)
-                    ChatUtil.sendSuccessNotification(player, Messages.deleteconfirm(player))
+                    deleteTown(resident, player)
+                    Messages.send(player, "town.delete.confirm")
                 } else {
-                    ChatUtil.sendSuccessNotification(player, Messages.commandundefined(player))
+                    Messages.send(player, "command_exit")
                 }
             }
         }
     }
 
-    private fun deleteTown(resident: Resident) {
-        if (resident.hasTown() && resident.isMayor) {
-            TownyUtil.deleteTown(resident.town)
+    private fun deleteTown(resident: Resident, player: Player) {
+        if (resident.hasTown && resident.isMayor) {
+            resident.town?.let { TownyUtil.deleteTown(it) }
         } else {
-            ChatUtil.sendSuccessNotification(resident, Messages.permissionerror(resident.player))
+            Messages.send(player, "message_town_exist")
         }
     }
 
     private fun handleLeaveTown(player: Player) {
-        val resident = TownManager.getInstance().getResident(player)
-        if (!resident.hasTown()) {
-            Messages.messagetownexist(player)
+        val resident = TownManager.getResident(player)!!
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
         if (!resident.isMayor) {
             TownyUtil.removeResidentInTown(resident)
-            ChatUtil.sendSuccessNotification(player, Messages.leaveconfirm(player))
+            Messages.send(player, "town.leave.confirm")
         } else {
-            ChatUtil.sendSuccessNotification(player, Messages.leaveerror(resident.player))
+            Messages.send(player, "town.leave.error")
         }
     }
 
-    private fun handleClaim(resident: Resident) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.messagetownexist(resident.player))
+    private fun handleClaim(resident: Resident, player: Player) {
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
 
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_CLAIM")
-        val chunk = resident.player.location.chunk
-        val claimCoord = WorldCoord(chunk.world.name, chunk.x, chunk.z)
-
-        if (!hasNeighbouringTownChunk(resident.town, claimCoord)) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.claimerror(resident.player))
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_CLAIM")
+        val chunk = player.location.chunk
+        val claimCoord = WorldCoord(chunk.world, chunk.x, chunk.z)
+        if (TownManager.getTownBlock(chunk) != null) {
+            Messages.send(player, "town.claim.already_claimed")
             return
         }
 
-        if (TownManager.getInstance().getTownByChunk(chunk) != null) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.alrclaim(resident.player))
+        if (!hasNeighbouringTownChunk(resident.town!!, claimCoord)) {
+            Messages.send(player, "town.claim.error")
             return
         }
 
-        if (ConfigYML.moneygold) {
-            if (Core.getInstance().getItemAmount(resident.player, Material.GOLD_INGOT) < ConfigYML.priceTownBlocks) {
-                ChatUtil.sendSuccessNotification(resident.player, Messages.goldnotenough(resident.player))
-                return
-            }
 
-            resident.player.inventory.removeItem(ItemStack(Material.GOLD_INGOT, ConfigYML.priceTownBlocks))
-            TownyUtil.createTownBlock(chunk.world, resident.town, chunk.x, chunk.z)
-            ChatUtil.sendSuccessNotification(resident.player, "${Messages.claimconfirm(resident.player)} X: ${chunk.x} Z: ${chunk.z}")
-        } else {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.error(resident.player))
-        }
+
+
+        TownyUtil.createTownBlock(chunk.world, resident.town!!, chunk.x, chunk.z)
+        Messages.send(player, "town.claim.success")
     }
 
     private fun hasNeighbouringTownChunk(town: Town, claimCoord: WorldCoord): Boolean {
-        val townBlocks = town.townBlocks
-        val neighbours = arrayOf(
-            intArrayOf(1, 0),   // справа
-            intArrayOf(-1, 0),  // слева
-            intArrayOf(0, 1),   // впереди
-            intArrayOf(0, -1)   // сзади
+        val townBlocks = town.townBlocks.values // Используем values, если townBlocks - это Map
+        val neighbours = listOf(
+            1 to 0,  // справа
+            -1 to 0, // слева
+            0 to 1,  // впереди
+            0 to -1  // сзади
         )
 
-        return neighbours.any { offset ->
-            val neighbourCoord = WorldCoord(claimCoord.worldName, claimCoord.x + offset[0], claimCoord.z + offset[1])
-            townBlocks.containsKey(neighbourCoord)
+        return neighbours.any { (dx, dz) ->
+            townBlocks.any { it.x == claimCoord.x + dx && it.z == claimCoord.z + dz }
         }
     }
 
-    private fun handleUnClaim(resident: Resident) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.messagetownexist(resident.player))
+
+    private fun handleUnClaim(resident: Resident, player: Player) {
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
 
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_UNCLAIM")
-        val chunk = resident.player.location.chunk
-        if (resident.town.homeblock.x == chunk.x && resident.town.homeblock.z == chunk.z) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.homeblockerror(resident.player))
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_UNCLAIM")
+        val chunk = player.location.chunk
+        if (resident.town?.homeBlock?.x == chunk.x && resident.town!!.homeBlock!!.z == chunk.z) {
+            Messages.send(player, "town.unclaim.home_block_error")
             return
         }
 
-        val townByChunk = TownManager.getInstance().getTownByChunk(chunk)
-        if (townByChunk == null || resident.town != townByChunk) {
-            ChatUtil.sendSuccessNotification(resident, Messages.chunkerror(resident.player))
+        val townByChunk = TownManager.getTownBlock(chunk)
+        if (townByChunk == null || resident.town != townByChunk.town) {
+            Messages.send(player, "town.unclaim.not_part_of_town")
             return
         }
 
-        val townBlocks = TownManager.getInstance().getTownBlock(chunk)
-        val response = TownyUtil.deleteTownBlock(townBlocks)
-        BukkitUtils.logToConsole(response.message)
-        ChatUtil.sendSuccessNotification(resident.player, "${Messages.unclaimconfirm(resident.player)} X: ${townBlocks.x} Z: ${townBlocks.z}")
+        val townBlocks = TownManager.getTownBlock(chunk)
+        val response = townBlocks?.let { TownyUtil.deleteTownBlock(it) }
+        if(!response!!.isSuccess) {
+            Messages.send(player, "error")
+            return
+        }
+        Messages.send(player, "town.unclaim.success")
     }
 
-    private fun setSpawn(resident: Resident) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.messagetownexist(resident.player))
+    private fun setSpawn(resident: Resident, player: Player) {
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_SET_SPAWN")
-        val town = TownManager.getInstance().getTown(resident)
-        val chunk = resident.player.location.chunk
-        if (town.townBlocks.keys.none { it.x == chunk.x && it.z == chunk.z }) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.chunkerror(resident.player))
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_SET_SPAWN")
+        val town = TownManager.getTown(resident)
+        val chunk = player.location.chunk
+        if (town?.townBlocks?.keys?.none { it.x == chunk.x && it.z == chunk.z } == true) {
+            Messages.send(player, "town.claim.error")
             return
         }
-        town.spawnLocation = resident.player.location
-        ChatUtil.sendSuccessNotification(resident.player, Messages.spawnset(resident.player))
+        town?.spawnLocation = player.location
+        Messages.send(player, "town.set.spawn.success")
     }
 
-    private fun setHomeBlock(resident: Resident) {
-        if (!resident.hasTown()) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.messagetownexist(resident.player))
+    private fun setHomeBlock(resident: Resident, player: Player) {
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
             return
         }
-        TownyUtil.checkTownPermission(resident, "ASTRATOWN_TOWN_SET_HOMEBLOCK")
-        val town = TownManager.getInstance().getTown(resident)
-        val chunk = resident.player.location.chunk
-        if (town.townBlocks.keys.none { it.x == chunk.x && it.z == chunk.z }) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.chunkerror(resident.player))
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_SET_HOMEBLOCK")
+        val town = TownManager.getTown(resident)
+        val chunk = player.location.chunk
+        if (town?.townBlocks?.keys?.none { it.x == chunk.x && it.z == chunk.z } == true) {
+            Messages.send(player, "town.claim.error")
             return
         }
-        if (town.homeblock.x == chunk.x && town.homeblock.z == chunk.z) {
-            ChatUtil.sendSuccessNotification(resident.player, Messages.homeblockalr(resident.player))
+        if (town?.homeBlock?.x == chunk.x && town.homeBlock!!.z == chunk.z) {
+            Messages.send(player, "town.home_block.already_set")
             return
         }
-        town.homeblock = HomeBlock(chunk.x, chunk.z, chunk.world)
-        ChatUtil.sendSuccessNotification(resident.player, Messages.homeblockconfirm(resident.player))
+        town?.homeBlock = HomeBlock(chunk.x, chunk.z, chunk.world)
+        Messages.send(player, "town.home_block.set")
     }
 
     override fun onTabComplete(sender: CommandSender, command: Command, label: String, args: Array<out String>): List<String>? {
         val player = sender as Player
-        val resident = TownManager.getInstance().getResident(player)
+        val resident = TownManager.getResident(player)!!
 
         return when (args.size) {
             1 -> {
                 val commands = mutableListOf("create", "delete", "leave", "spawn", "accept", "invite", "claim", "unclaim", "set", "rank", "new", "kick", "transfer", "army")
-                commands.addAll(TownManager.getInstance().getTownNames())
+                commands.addAll(TownManager.getTownNames())
                 getPartialMatches(args[0], commands)
             }
             2 -> handleSecondArgCompletion(args, resident)
             3 -> handleThirdArgCompletion(args, resident)
             4 -> handleFourthArgCompletion(args, resident)
-            else -> tabCompleters[args[0]]?.onTabComplete(sender, command, label, args) ?: emptyList()
+            else -> emptyList()
         }
     }
 
     private fun handleSecondArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when (args[0].lowercase()) {
-            "invite" -> getPartialMatches(args[1], Bukkit.getOnlinePlayers().map(Player::name))
-            "rank" -> getPartialMatches(args[1], listOf("create", "new", "set", "give", "delete", "my"))
+            "invite" -> getPartialMatches(args[1], Bukkit.getOnlinePlayers().map(Player::getName))
             "set" -> getPartialMatches(args[1], listOf("spawn", "homeblock", "mapcolor", "name", "mapcolorall"))
-            "kick" -> if (resident.hasTown()) getPartialMatches(args[1], resident.town.residents.map(Resident::playerName)) else emptyList()
-            "transfer" -> getPartialMatches(args[1], Bukkit.getOnlinePlayers().map(Player::name))
+            "kick" -> if (resident.hasTown) getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
+            "transfer" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
             "accept" -> getPartialMatches(args[1], resident.invitations)
             "army" -> getPartialMatches(args[1], listOf("add", "remove"))
             else -> emptyList()
@@ -478,32 +496,19 @@ class TownyCommand : TabExecutor {
 
     private fun handleThirdArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when {
-            args[1].lowercase() in listOf("add", "remove") -> if (resident.hasTown()) getPartialMatches(args[2], resident.town.residents.map(Resident::playerName)) else emptyList()
-            args[1].lowercase() == "delete" -> {
-                val ranks = TownManager.getInstance().getRanks().values.filter { it.town == resident.town }.map(Rank::name).toMutableList()
-                ranks.remove(ConfigYML.mayorname)
-                ranks.remove(ConfigYML.defaultPerm)
-                getPartialMatches(args[2], ranks)
-            }
-            args[0].lowercase() == "army" -> getPartialMatches(args[1], resident.town.residents.map(Resident::playerName))
+            args[1].lowercase() in listOf("add", "remove") -> if (resident.hasTown) getPartialMatches(args[2], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
+            args[0].lowercase() == "army" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
             else -> emptyList()
         }
     }
 
     private fun handleFourthArgCompletion(args: Array<out String>, resident: Resident): List<String> {
-        return if (args[1].lowercase() in listOf("add", "remove")) {
-            val ranks = TownManager.getInstance().getRanks().values.filter { it.town == resident.town }.map(Rank::name).toMutableList()
-            ranks.remove(ConfigYML.mayorname)
-            ranks.remove(ConfigYML.defaultPerm)
-            getPartialMatches(args[3], ranks)
-        } else {
-            emptyList()
-        }
+        return emptyList()
     }
 
     private fun getPartialMatches(arg: String, options: List<String>): List<String> {
         return options.filter { it.startsWith(arg) }
     }
-}
 
- */
+
+}

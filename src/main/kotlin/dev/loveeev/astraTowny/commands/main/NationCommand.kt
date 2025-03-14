@@ -1,415 +1,363 @@
-package dev.loveeev.astraTowny.commands.main;
+package dev.loveeev.astratowny.commands.main
 
-import dev.loveeev.astratowny.chat.Messages;
-import dev.loveeev.astratowny.config.ConfigYML;
-import dev.loveeev.astratowny.config.TranslateYML;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Nation;
-import dev.loveeev.astratowny.objects.Resident;
-import dev.loveeev.astratowny.objects.Rank;
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astratowny.response.NoPermissionException;
-import dev.loveeev.astratowny.utils.ChatUtil;
-import dev.loveeev.astratowny.utils.TownyUtil;
-import net.md_5.bungee.api.ChatColor;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
- import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Nation
+import dev.loveeev.astratowny.objects.Resident
+import dev.loveeev.astratowny.utils.TownyUtil
+import dev.loveeev.utils.TextUtil
+import net.md_5.bungee.api.ChatColor
+import net.md_5.bungee.api.ChatMessageType
+import net.md_5.bungee.api.chat.ClickEvent
+import net.md_5.bungee.api.chat.ComponentBuilder
+import net.md_5.bungee.api.chat.HoverEvent
+import net.md_5.bungee.api.chat.TextComponent
+import org.bukkit.Bukkit
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
+import org.bukkit.command.TabExecutor
+import org.bukkit.entity.Player
+import java.util.*
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+class NationCommand : TabExecutor {
 
-public class NationCommand implements TabExecutor {
-    @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("Команда доступна только в игре.");
-            return true;
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<String>): Boolean {
+        if (sender !is Player) {
+            sender.sendMessage("ONLY IN GAME!")
+            return true
         }
-        Resident resident = TownManager.getInstance().getResident(player);
-        if (args.length == 0) {
-            if (!TownManager.getInstance().getResident(player).hasNation()) {
-                ChatUtil.sendSuccessNotification(player, Messages.nationnull(player));
+
+        val resident = TownManager.getResident(sender)!!
+
+        if (args.isEmpty()) {
+            if (!resident.hasNation) {
+                Messages.send(sender, "message_nation_exist")
             } else {
-                Messages.info(TownManager.getInstance().getNation(player), player, TranslateYML.get(player).getStringList("n"));
+                sendNationInfo(resident.nation!!, sender)
             }
-            return true;
+            return true
         }
+
         try {
-            switch (args[0]) {
-                case "create", "new" -> createNation(args, resident, player);
-                case "delete" -> deleteNation(args, resident, player);
-                case "invite" -> invite(args, resident, player);
-                case "accept" -> accept(args, resident, player);
-                case "kick" -> kickTown(args, resident, player);
-                case "transfer" -> transfer(resident, args);
-                case "set" -> set(args, resident, player);
-                case "leave" -> leave(args, resident, player);
-                default -> {
-                    String cityName = args[0];
-                    Nation nation = TownManager.getInstance().getNation(cityName);
+            when (args[0].lowercase()) {
+                "create", "new" -> createNation(args, resident, sender)
+                "delete" -> deleteNation(args, resident, sender)
+                "invite" -> invite(args, resident, sender)
+                "accept" -> accept(args, resident, sender)
+                "kick" -> kickTown(args, resident, sender)
+                "transfer" -> transfer(resident, args, sender)
+                "set" -> set(args, resident, sender)
+                "leave" -> leave(args, resident, sender)
+                else -> {
+                    val nation = TownManager.getNation(args[0])
                     if (nation != null) {
-                        Messages.info(nation, player, TranslateYML.get(player).getStringList("n"));
+                        sendNationInfo(nation, sender)
                     } else {
-                        ChatUtil.sendSuccessNotification(player, Messages.commandundefined(resident.getPlayer()));
+                        Messages.send(sender, "command_exit")
                     }
                 }
             }
-        }catch (Exception e){
-            e.printStackTrace();
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        return true;
 
+        return true
     }
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        if(args.length == 1){
-            List<String> commands = new ArrayList<>(List.of("create","delete","invite","accept","kick","rank","set","transfer","leave"));
-            List<String> townNames = TownManager.getInstance().getTownNames();
-            commands.addAll(townNames);
-            return getPartialMatches(args[0], commands);
-        }
-        Resident resident = TownManager.getInstance().getResident((Player) sender);
-        if(args.length == 2){
-            if(args[0].equalsIgnoreCase("set")){
-                return getPartialMatches(args[1],List.of("mapcolor","name","capital"));
-            }else if (args[0].equalsIgnoreCase("kick")){
-                if(resident.hasNation()){
-                    List<Town> towns = resident.getNation().getTowns();
-                    towns.remove(resident.getNation().getCapital());
-                    return getPartialMatches(args[1],towns.stream().map(town -> town.getName()).collect(Collectors.toList()));
-                }
-            }else if(args[0].equalsIgnoreCase("rank")){
-                return getPartialMatches(args[1],List.of("create","new","add","remove","delete","list","my"));
-            }else if(args[0].equalsIgnoreCase("invite")){
-                return getPartialMatches(args[1],TownManager.getInstance().getTownNames());
-            }else if (args[0].equalsIgnoreCase("accept")) {
-                if(resident.hasTown()) {
-                    return getPartialMatches(args[1], resident.getTown().getInvitations());
-                }else {
-                    return new ArrayList<>();
-                }
-            }
-        }
-        if(args.length == 3){
-            if(args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")) {
-                if (resident.hasNation()) {
-                    return getPartialMatches(args[2], resident.getTown().getResidents().stream().map(Resident::getPlayerName).collect(Collectors.toList()));
-                }else{
-                    return new ArrayList<>();
-                }
-            }else if (args[1].equalsIgnoreCase("delete")){
-                List<String> list = new ArrayList<>();
-                for (ConcurrentHashMap.Entry<UUID, Rank> entry : TownManager.getInstance().getRanks().entrySet()) {
-                    Rank rank = entry.getValue();
-                    String rankName = rank.getName();
-                    if (resident.hasNation()) {
-                        if (rank.getNation() == resident.getNation()) {
-                            list.add(rankName);
-                        }
-                    }
-                }
-                list.remove(ConfigYML.kingname);
-                list.remove(ConfigYML.defaultnationname);
-                return getPartialMatches(args[2],list);
-            }
-        }
-        if(args.length == 4){
-            if(args[1].equalsIgnoreCase("add") || args[1].equalsIgnoreCase("remove")){
-                List<String> list = new ArrayList<>();
-                for (ConcurrentHashMap.Entry<UUID, Rank> entry : TownManager.getInstance().getRanks().entrySet()) {
-                    Rank rank = entry.getValue();
-                    String rankName = rank.getName();
-                    if (resident.hasNation()) {
-                        if (rank.getNation() == resident.getNation()) {
-                            list.add(rankName);
-                        }
-                    }
-                }
-                list.remove(ConfigYML.kingname);
-                list.remove(ConfigYML.defaultnationname);
-                return getPartialMatches(args[3],list);
-            }
-        }
-        return new ArrayList<>();
+    private fun sendNationInfo(nation: Nation, player: Player) {
+        val info = listOf(
+            "&6Название: &f${nation.name}",
+            "&6Столица: &f${nation.capital?.name}",
+            "&6Города (${nation.towns.size}): &f${
+                nation.towns.joinToString(", ") { it.name }
+            }",
+            "&6Участники: &f${
+                nation.residents.joinToString(", ") { it.playerName }
+            }"
+        )
+        info.forEach { Messages.sendMessage(player, it) }
     }
 
+    override fun onTabComplete(
+        sender: CommandSender,
+        command: Command,
+        alias: String,
+        args: Array<String>
+    ): List<String>? {
+        if (sender !is Player) return null
+        val resident = TownManager.getResident(sender)
 
-    public void  leave(String[] args,Resident resident,Player player) throws NoPermissionException {
-        if(!resident.hasNation()){
-            ChatUtil.sendSuccessNotification(resident, Messages.nationexist(resident.getPlayer()));
-            return;
-        }
-        if (!resident.isMayor()) {
-            ChatUtil.sendSuccessNotification(resident, Messages.permissionerror(resident.getPlayer()));
-            return;
-        }
-        if(args.length < 1){
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-            return;
-        }
-        if(args[0] == null || args[0].isEmpty()){
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_LEAVE");
-        if(resident.getTown().isCapital()){
-            ChatUtil.sendSuccessNotification(player,Messages.capitalerror(player));
-            return;
-        }
-        TownyUtil.removeTownInNation(resident.getTown());
-        ChatUtil.sendSuccessNotification(player,Messages.leavenation(player));
-    }
+        return when (args.size) {
+            1 -> listOf("create", "delete", "invite", "accept", "kick", "rank", "set", "transfer", "leave")
+                .plus(TownManager.getNationNames())
+                .filter { it.startsWith(args[0], true) }
 
+            2 -> when (args[0].lowercase()) {
+                "set" -> listOf("mapcolor", "name", "capital")
+                    .filter { it.startsWith(args[1], true) }
 
-    public void transfer(Resident resident,String[] args) {
-        if(args.length < 2){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.transfern(resident.getPlayer()));
-            return;
-        }
-        if(TownManager.getInstance().getTown(args[1]) == null){
-            ChatUtil.sendSuccessNotification(resident,Messages.townexist(resident.getPlayer()));
-        }
-        if (!resident.hasNation()) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.townexist(resident.getPlayer()));
-            return;
-        }
-        if (!resident.isKing()) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.permissionerror(resident.getPlayer()));
-            return;
-        }
-        Resident res = TownManager.getInstance().getResident(args[1]);
-        if(res == null){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.playererror(resident.getPlayer()));
-            return;
-        }
-        if(!res.hasNation()){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.townexist(resident.getPlayer()));
-            return;
-        }
-        if(res.getNation() != resident.getNation()) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.error(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.setKing(res);
-        TownyUtil.removeResidentInNation(resident);
-        TownyUtil.addResidentInTown(resident,res.getTown());
-        ChatUtil.sendSuccessNotification(resident,Messages.transfersuc(resident.getPlayer()));
-    }
+                "kick" -> resident?.nation?.towns
+                    ?.filter { it != resident.nation?.capital }
+                    ?.map { it.name }
+                    ?.filter { it.startsWith(args[1], true) } ?: emptyList()
 
-    public void accept(String[] args, Resident resident, Player player) throws NoPermissionException {
-        if (args.length != 2) {
-            ChatUtil.sendSuccessNotification(player, Messages.accept(player));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_TOWN_ACCEPTNATION");
-        String townName = args[1];
-        acceptInvitation(resident, townName, player);
-    }
+                "rank" -> listOf("create", "new", "add", "remove", "delete", "list", "my")
+                    .filter { it.startsWith(args[1], true) }
 
-    public static void acceptInvitation(Resident resident, String nationName, Player player) {
-        if (!resident.getTown().hasInvitation(nationName)) {
-            ChatUtil.sendSuccessNotification(player, Messages.accepterror(player));
-            return;
-        }
-        TownyUtil.addTownInNation(resident.getTown(),TownManager.getInstance().getNation(nationName));
-        resident.getTown().getInvitations().remove(nationName);
-        ChatUtil.sendSuccessNotification(player, Messages.acceptconfirm(player));
-    }
+                "invite" -> TownManager.getTownNames()
+                    .filter { it.startsWith(args[1], true) }
 
-
-    public void invite(String[] args, Resident resident, Player player) throws NoPermissionException {
-        if(resident.hasTown() && resident.hasNation()) {
-            TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_INVITE");
-            if (args.length == 1) {
-                ChatUtil.sendSuccessNotification(player, Messages.invite(player));
-                return;
-            }
-            if (args.length == 2) {
-                String invitedsTown = args[1];
-                Town invitedTown = TownManager.getInstance().getTown(invitedsTown);
-                if(invitedTown.hasInvitation(resident.getNation().getName())){
-                    ChatUtil.sendSuccessNotification(player,Messages.alrinvite(player));
-                    return;
-                }
-                if(Objects.equals(invitedTown, resident.getTown())){
-                    ChatUtil.sendSuccessNotification(player,Messages.selfinvite(player));
-                    return;
-                }
-                if(invitedTown.hasNation()){
-                    ChatUtil.sendSuccessNotification(player,Messages.townhasnation(player));
-                    return;
-                }
-                if(!invitedTown.getMayor().isOnline()){
-                    ChatUtil.sendSuccessNotification(player,"Мэр не в сети.");
-                }
-                invitedTown.getInvitations().add(resident.getNation().getName());
-                ChatUtil.sendSuccessNotification(player, Messages.invitesend(player) + invitedsTown + ".");
-                TextComponent message = new TextComponent(ChatUtil.getInstance().colorize(Messages.inviteaprove(player) + resident.getNation().getName()));
-                TextComponent confirmCommand = new TextComponent(ChatColor.GREEN + " [/n accept " + resident.getNation().getName() + "]");
-                confirmCommand.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/n accept " + resident.getNation().getName()));
-                confirmCommand.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(Messages.confirmation(player)).create()));
-                message.addExtra(confirmCommand);
-                invitedTown.getMayor().getPlayer().spigot().sendMessage(ChatMessageType.CHAT, message);
+                "accept" -> resident?.town?.invitations?.filter { it.startsWith(args[1], true) } ?: emptyList()
+                else -> emptyList()
             }
 
-        }else {
-            ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-        }
-    }
-    private List<String> getPartialMatches(String arg, List<String> options) {
-        return options.stream().filter(option -> option.startsWith(arg)).collect(Collectors.toList());
-    }
-    public void kickTown(String[] args, Resident resident, Player player) throws NoPermissionException {
-        if (args.length == 1) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.kicktown(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_KICKTOWN");
-        TownManager townManager = TownManager.getInstance();
-        Town targetTown = townManager.getTown(args[1]);
-
-        if (targetTown == null) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.playeroffline(resident.getPlayer()));
-            return;
-        }
-        if(targetTown == resident.getTown()){
-            ChatUtil.sendSuccessNotification(player,"Вы не можете кикнуть самого себя!");
-            return;
-        }
-
-        Town residentTown = townManager.getTown(resident.getPlayer());
-        Nation targetNation = targetTown.getNation();
-        Nation residentNation = residentTown.getNation();
-
-        if (targetNation != residentNation) {
-            ChatUtil.sendSuccessNotification(player, Messages.townnonation(player));
-            return;
-        }
-
-        if (targetNation.getCapital() == targetTown) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.notkickcapital(player));
-            return;
-        }
-
-
-        TownyUtil.removeTownInNation(targetTown);
-        for (Resident r : targetTown.getResidents()){
-            ChatUtil.sendSuccessNotification(r,"Вы были и́згнаны из нации.");
-        }
-        ChatUtil.sendSuccessNotification(resident.getPlayer(),Messages.kicksuc(resident.getPlayer()));
-    }
-
-
-    public void set(String[] args,Resident resident,Player player) throws NoPermissionException {
-        if(!resident.hasNation()){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.nationexist(resident.getPlayer()));
-            return;
-        }
-        switch (args[1]){
-            case "name" -> setName(args,resident);
-            case "capital" -> setCapital(args,resident);
-            case "mapcolor" -> setMapColor(args,resident);
-            default -> ChatUtil.sendSuccessNotification(player, Messages.commandundefined(player));
-        }
-    }
-    public void setName(String[] args, Resident resident) throws NoPermissionException {
-        if (args.length == 2) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.setnationname(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_SET_NAME");
-        resident.getNation().setName(args[2]);
-        ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.setnamesuc(resident.getPlayer()));
-    }
-    public void setCapital(String[] args, Resident resident){
-        if (args.length == 2) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.setnationname(resident.getPlayer()));
-            return;
-        }
-        if(!resident.isKing()){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(),Messages.permissionerror(resident.getPlayer()));
-            return;
-        }
-        if(TownManager.getInstance().getTown(args[2] )== null){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.townexist(resident.getPlayer()));
-            return;
-        }
-        if(TownManager.getInstance().getTown(args[2]).getNation() != resident.getNation()){
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.townnotisnation(resident.getPlayer()));
-            return;
-        }
-        resident.getNation().setCapital(TownManager.getInstance().getTown(args[2]));
-        ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.changecapital(resident.getPlayer()));
-    }
-
-    public void setMapColor(String[] args, Resident resident) throws NoPermissionException {
-        if (args.length == 2) {
-            ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.setnationname(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_SET_MAPCOLOR");
-        for (Town town : resident.getNation().getTowns()){
-            town.setMapColor(args[2]);
-        }
-        ChatUtil.sendSuccessNotification(resident.getPlayer(), Messages.changecapital(resident.getPlayer()));
-    }
-    public void createNation(String[] args,Resident resident,Player player) throws NoPermissionException {
-        if (args.length == 1) {
-            ChatUtil.sendSuccessNotification(player,Messages.createnation(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_CREATE");
-            if (!resident.hasTown()) {
-                ChatUtil.sendSuccessNotification(player, Messages.createnationt(resident.getPlayer()));
-                return;
+            3 -> when {
+                args[1] in listOf("add", "remove") -> resident?.town?.residents
+                    ?.map { it.playerName }
+                    ?.filter { it.startsWith(args[2], true) } ?: emptyList()
+                else -> emptyList()
             }
-            if (!resident.isMayor()) {
-                ChatUtil.sendSuccessNotification(player, Messages.nationmayor(resident.getPlayer()));
-                return;
-            }
-            if(args[1] == null || args[1].isEmpty()){
-                ChatUtil.sendSuccessNotification(resident,Messages.args(player));
-                return;
-            }
-            if (!resident.hasNation()) {
-                Town town = TownManager.getInstance().getTown(resident);
-                Nation existingNation = TownManager.getInstance().getNation(args[1]);
-                if (existingNation != null) {
-                    ChatUtil.sendSuccessNotification(player, Messages.nationalrexist(resident.getPlayer()));
-                    return;
-                }
-                TownyUtil.createNation(args[1],UUID.randomUUID(),resident,town);
-            } else {
-                ChatUtil.sendSuccessNotification(player, Messages.nationalr(resident.getPlayer()));
-            }
-    }
 
-
-
-    public void deleteNation(String[] args,Resident resident,Player player) throws NoPermissionException {
-        if(!resident.hasTown()){
-            ChatUtil.sendSuccessNotification(player,Messages.townfornation(resident.getPlayer()));
-            return;
-        }
-        TownyUtil.checkNationPermission(resident,"ASTRATOWN_NATION_DELETE");
-        if(resident.hasNation() && resident.isKing()) {
-            Nation nation = TownManager.getInstance().getNation(resident);
-            TownyUtil.deleteNation(nation);
-            ChatUtil.sendSuccessNotification(player,Messages.nationdel(resident.getPlayer()) );
-        }else {
-            ChatUtil.sendSuccessNotification(player,Messages.permissionerror(resident.getPlayer()));
+            else -> emptyList()
         }
     }
 
+    private fun leave(args: Array<String>, resident: Resident, player: Player) {
+        if (!resident.hasNation) {
+            Messages.send(player, "nation.leave.confirm")
+            return
+        }
+
+        if (!resident.isMayor) {
+            Messages.send(player, "permission")
+            return
+        }
+
+        if (resident.town?.isCapital == true) {
+            Messages.send(player, "nation.leave.capital_error")
+            return
+        }
+
+        TownyUtil.removeTownInNation(resident.town!!)
+        Messages.send(player, "nation.leave.confirm")
+    }
+
+    private fun transfer(resident: Resident, args: Array<String>, sender: Player) {
+        if (args.size < 2) {
+            Messages.send(sender, "nation.transfer.command")
+            return
+        }
+
+        val targetTown = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "town.exist")
+            return
+        }
+
+        if (!resident.isKing) {
+            Messages.send(sender, "permission")
+            return
+        }
+
+        if (targetTown.nation != resident.nation) {
+            Messages.send(sender, "nation.kick.town_no_nation")
+            return
+        }
+
+        targetTown.mayor?.let { TownyUtil.setKing(it) }
+        Messages.send(sender, "nation.transfer.success")
+    }
+
+    private fun accept(args: Array<String>, resident: Resident, player: Player) {
+        if (args.size != 2) {
+            Messages.send(player, "nation.join.accept")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_ACCEPTNATION")
+        acceptInvitation(resident, args[1], player)
+    }
+
+    private fun acceptInvitation(resident: Resident, nationName: String, player: Player) {
+        if (!resident.town?.invitations?.contains(nationName)!!) {
+            Messages.send(player, "nation.join.accept_error")
+            return
+        }
+
+        TownyUtil.addTownInNation(resident.town!!, TownManager.getNation(nationName)!!)
+        resident.town?.invitations?.remove(nationName)
+        Messages.send(player, "nation.join.accept_confirm")
+    }
+
+    private fun invite(args: Array<String>, resident: Resident, player: Player) {
+        if (args.size < 2) {
+            Messages.send(player, "confirmation.invite.sent")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_INVITE")
+        val invitedTown = TownManager.getTown(args[1]) ?: run {
+            Messages.send(player, "town.exist")
+            return
+        }
+
+        if (invitedTown.hasNation) {
+            Messages.send(player, "nation.join.already_in_nation")
+            return
+        }
+
+        invitedTown.invitations.add(resident.nation!!.name)
+        Messages.send(player, "confirmation.invite.sent")
+
+        val message = TextComponent(TextUtil.colorize(Messages.getMessage(player,"confirmation.invite.approve") + resident.nation!!.name))
+        val confirmCommand = TextComponent(ChatColor.GREEN.toString() + " [/n accept ${resident.nation!!.name}]").apply {
+            clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/n accept ${resident.nation!! .name}")
+            hoverEvent = HoverEvent(HoverEvent.Action.SHOW_TEXT, ComponentBuilder(Messages.getMessage(player,"confirmation.text")).create())
+        }
+        message.addExtra(confirmCommand)
+        Bukkit.getPlayer(invitedTown.mayor?.playerName!!)?.spigot()?.sendMessage(ChatMessageType.CHAT, message)
+    }
+
+    private fun kickTown(args: Array<String>, resident: Resident, player: Player) {
+        if (args.size < 2) {
+            Messages.send(player, "nation.kick.command")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_KICKTOWN")
+        val targetTown = TownManager.getTown(args[1]) ?: run {
+            Messages.send(player, "player_offline")
+            return
+        }
+
+        if (targetTown == resident.town) {
+            Messages.send(player, "nation.kick.self")
+            return
+        }
+
+        if (targetTown.nation != resident.nation) {
+            Messages.send(player, "nation.kick.town_no_nation")
+            return
+        }
+
+        if (targetTown.nation?.capital == targetTown) {
+            Messages.send(player, "nation.kick.not_kick_capital")
+            return
+        }
+
+        TownyUtil.removeTownInNation(targetTown)
+        targetTown.residents.forEach { resident ->
+            Messages.send(player, "nation.kick.kick_player")
+        }
+        Messages.send(player, "nation.kick.success")
+    }
+
+    private fun set(args: Array<String>, resident: Resident, player: Player) {
+        if (!resident.hasNation) {
+            Messages.send(player, "nation.leave.confirm")
+            return
+        }
+
+        when (args[1]) {
+            "name" -> setName(args, resident)
+            "capital" -> setCapital(args, resident)
+            "mapcolor" -> setMapColor(args, resident)
+            else -> Messages.send(player, "command_exit")
+        }
+    }
+
+    private fun setName(args: Array<String>, resident: Resident) {
+        if (args.size < 3) {
+            Messages.send(resident, "nation.set.name.command")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_SET_NAME")
+        resident.nation?.name = args[2]
+        Messages.send(resident, "nation.set.name.success")
+    }
+
+    private fun setCapital(args: Array<String>, resident: Resident) {
+        if (args.size < 3) {
+            Messages.send(resident, "nation.set.capital.command")
+            return
+        }
+
+        if (!resident.isKing) {
+            Messages.send(resident, "permission")
+            return
+        }
+
+        val newCapital = TownManager.getTown(args[2]) ?: run {
+            Messages.send(resident, "town.exist")
+            return
+        }
+
+        if (newCapital.nation != resident.nation) {
+            Messages.send(resident, "nation.kick.town_no_nation")
+            return
+        }
+
+        resident.nation?.capital = newCapital
+        Messages.send(resident, "nation.set.capital.success")
+    }
+
+    private fun setMapColor(args: Array<String>, resident: Resident) {
+        if (args.size < 3) {
+            Messages.send(resident, "nation.set.map_color.command")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_SET_MAPCOLOR")
+        resident.nation?.towns?.forEach { it.mapColor = args[2] }
+        Messages.send(resident, "nation.set.map_color.success")
+    }
+
+    private fun createNation(args: Array<String>, resident: Resident, player: Player) {
+        if (args.size < 2) {
+            Messages.send(player, "nation.create.command")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_CREATE")
+
+        if (!resident.hasTown) {
+            Messages.send(player, "nation.create.need_town")
+            return
+        }
+
+        if (!resident.isMayor) {
+            Messages.send(player, "permission")
+            return
+        }
+
+        if (resident.hasNation) {
+            Messages.send(player, "nation.join.already_in_nation")
+            return
+        }
+
+        val existingNation = TownManager.getNation(args[1])
+        if (existingNation != null) {
+            Messages.send(player, "nation.create.exist")
+            return
+        }
+
+        TownyUtil.createNation(args[1], UUID.randomUUID(), resident, resident.town!!)
+        Messages.send(player, "nation.create.success")
+    }
+
+    private fun deleteNation(args: Array<String>, resident: Resident, player: Player) {
+        if (!resident.hasTown) {
+            Messages.send(player, "message_town_exist")
+            return
+        }
+
+        TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_DELETE")
+        if (resident.hasNation && resident.isKing) {
+            val nation = TownManager.getNation(resident) ?: return
+            TownyUtil.deleteNation(nation)
+            Messages.send(player, "nation.delete.success")
+        } else {
+            Messages.send(player, "permission")
+        }
+    }
 }

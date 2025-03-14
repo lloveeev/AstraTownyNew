@@ -1,18 +1,21 @@
 package dev.loveeev.astratowny.objects
 
-import java.util.UUID
-import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
+import java.util.*
 
 data class Nation(
-    val name: String,
+    var name: String,
     val uuid: UUID,
-    var king: Resident? = null,
     var capital: Town? = null,
     var balance: Double = 0.0,
     var mapColor: String? = null,
-    val towns: ObjectArrayList<Town> = ObjectArrayList(),
-    val residents: ObjectArrayList<Resident> = ObjectArrayList()
+    val towns: ObjectOpenHashSet<Town> = ObjectOpenHashSet(),
+    val residents: ObjectOpenHashSet<Resident> = ObjectOpenHashSet()
 ) {
+    override fun toString(): String {
+        return "$name towns: ${towns.size} res: ${residents.size}"
+    }
+
     fun hasTown(town: Town): Boolean {
         return towns.contains(town)
     }
@@ -25,6 +28,12 @@ data class Nation(
         if (!hasTown(town)) {
             towns.add(town)
         }
+    }
+    override fun hashCode(): Int {
+        var result = uuid.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + (capital?.hashCode() ?: 0)
+        return result
     }
 
     fun removeTown(town: Town) {

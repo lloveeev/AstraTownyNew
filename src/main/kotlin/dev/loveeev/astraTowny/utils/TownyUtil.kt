@@ -23,6 +23,7 @@ import dev.loveeev.astratowny.events.town.TownDeleteEvent
 import dev.loveeev.astratowny.events.townblocks.TownBlockCreateEvent
 import dev.loveeev.astratowny.events.townblocks.TownBlockDeleteEvent
 import dev.loveeev.astratowny.objects.townblocks.HomeBlock
+import dev.loveeev.astratowny.response.Status
 import org.bukkit.Location
 import org.bukkit.World
 
@@ -146,8 +147,6 @@ object TownyUtil {
                     val response = createTownBlock(it.world, this, it.x, it.z)
                     if (response.isSuccess) {
                         this.homeBlock = it
-                        TownManager.getTownBlock(WorldCoord(it.world, it.x, it.z))
-                            ?.let { it1 -> this.addClaimedChunk(it1) }
                     } else {
                         BukkitUtils.logToConsole(response.message)
                     }
@@ -166,6 +165,7 @@ object TownyUtil {
                     }
                 } ?: BukkitUtils.logToConsole("Created town without a mayor.")
             }
+            addTownBlockToTown(town, TownBlock(homeBlock!!.x, homeBlock.z, town, homeBlock.world))
 
             synchronizedMap(TownManager.towns) {
                 TownManager.towns[town.uuid] = town
@@ -196,7 +196,7 @@ object TownyUtil {
             val existingNation = TownManager.getNation(name)
             if (existingNation != null) return TownyResponse.failure("A nation with this name already exists.")
 
-            val nation = Nation(name, uuid, resident, capital).apply {
+            val nation = Nation(name, uuid, capital).apply {
                 resident?.let {
                     if (capital?.nation != null) {
                         return TownyResponse.failure("Capital already has a nation.")
@@ -204,7 +204,6 @@ object TownyUtil {
                     this.capital = capital
                     this.addResident(it)
                     it.nation = this
-                    this.king = it
                     addTownInNation(capital, this)
                     val response = setKing(it)
                     if (!response.isSuccess) {
@@ -583,7 +582,7 @@ object TownyUtil {
             }
 
             if (resident.isKing) {
-                resident.nation?.king = null
+                deleteNation(resident.nation!!)
             }
 
             synchronized(resident.nation!!.residents) {
@@ -719,10 +718,49 @@ object TownyUtil {
     }
 
     fun setMayor(it: Resident): TownyResponse {
-        TODO("Not yet implemented")
+        return TownyResponse(Status.SUCCESS, "SET MAYOR SUCCESS")
     }
 
     fun setKing(it: Resident): TownyResponse {
-        TODO("Not yet implemented")
+        return TownyResponse(Status.SUCCESS, "SET KING SUCCESS")
     }
+
+    fun checkPermission(resident: Resident, s: String) {
+
+    }
+
+    fun addTownBlockToTown(town: Town, townBlock: TownBlock) {
+        val coord = WorldCoord.parseTownBlocksCoord(townBlock)
+
+        // Проверяем, принадлежит ли чанк уже другому городу
+        if (townBlock.town != town) {
+            val existingBlock = TownManager.townBlocks[coord]
+
+            // Если чанк уже есть в TownManager, удаляем его перед повторным добавлением
+            if (existingBlock != null) {
+                TownManager.townBlocks.remove(coord)
+                existingBlock.town.townBlocks?.remove(coord)
+            }
+
+            // Создаём новый TownBlock и добавляем его в менеджер
+            val newTownBlock = TownBlock(townBlock.x, townBlock.z, town, townBlock.world)
+            TownManager.townBlocks[coord] = newTownBlock
+
+            // Добавляем в город, если его там нет
+            if (!town.townBlocks.containsKey(coord)) {
+                town.addClaimedChunk(newTownBlock)
+            }
+        }
+        if(townBlock.town == town) {
+            val existingBlock = TownManager.townBlocks[coord]
+
+            if (existingBlock == null) {
+                TownManager.townBlocks[coord] = townBlock
+            }
+            if (!town.townBlocks.containsKey(coord)) {
+                town.addClaimedChunk(townBlock)
+            }
+        }
+    }
+
 }

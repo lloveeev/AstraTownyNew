@@ -1,9 +1,10 @@
 package dev.loveeev.astratowny.listeners
 
-import dev.loveeev.astratowny.AstraTowny
 import dev.loveeev.astratowny.chat.Messages
 import dev.loveeev.astratowny.events.nation.NationCreateEvent
 import dev.loveeev.astratowny.events.nation.NationDeleteEvent
+import dev.loveeev.astratowny.events.resident.ResidentTownJoin
+import dev.loveeev.astratowny.events.resident.ResidentTownLeave
 import dev.loveeev.astratowny.events.response.ResponseFailEvent
 import dev.loveeev.astratowny.events.town.TownCreateEvent
 import dev.loveeev.astratowny.events.town.TownDeleteEvent
@@ -23,6 +24,44 @@ class ResidentEvent : Listener {
     }
 
     @EventHandler
+    fun onTownCreate(event: TownCreateEvent) {
+        for (player in Bukkit.getOnlinePlayers()) {
+            Messages.broadCastSend(player, "broadcast.town.created", event.town, null)
+        }
+    }
+
+    @EventHandler
+    fun onTownJoin(event: ResidentTownJoin) {
+        for (resident in event.resident.town?.residents ?: emptyList()) {
+            if(resident.isOnline){
+                Bukkit.getPlayer(resident.playerName)?.let { Messages.sendMessage(it, Messages.getMessage(it, "broadcast.resident.new") + it.name) }
+            }
+        }
+    }
+
+    @EventHandler
+    fun onTownLeave(event: ResidentTownLeave) {
+        for (resident in event.resident.town?.residents ?: emptyList()) {
+            if(resident.isOnline){
+                Bukkit.getPlayer(resident.playerName)?.let { Messages.sendMessage(it, Messages.getMessage(it, "broadcast.resident.leave") + it.name) }
+            }
+        }
+    }
+
+    @EventHandler
+    fun onDeleteTown(event: NationDeleteEvent) {
+        for (player in Bukkit.getOnlinePlayers()) {
+            Messages.broadCastSend(player, "broadcast.nation.deleted", null, event.nation)
+        }
+    }
+    @EventHandler
+    fun onNationCreate(event: NationCreateEvent) {
+        for (player in Bukkit.getOnlinePlayers()) {
+            Messages.broadCastSend(player, "broadcast.nation.created", null, event.nation)
+        }
+    }
+
+    @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
 
@@ -35,19 +74,7 @@ class ResidentEvent : Listener {
         }
     }
 
-    @EventHandler
-    fun onTownCreate(event: TownCreateEvent) {
-        for (player in Bukkit.getOnlinePlayers()) {
-            Messages.broadCastSend(player, "broadcast.town.created", event.town, null)
-        }
-    }
 
-    @EventHandler
-    fun onNationCreate(event: NationCreateEvent) {
-        for (player in Bukkit.getOnlinePlayers()) {
-            Messages.broadCastSend(player, "broadcast.nation.created", null, event.nation)
-        }
-    }
 
     @EventHandler
     fun onDeleteTown(event: TownDeleteEvent) {
@@ -56,10 +83,4 @@ class ResidentEvent : Listener {
         }
     }
 
-    @EventHandler
-    fun onDeleteTown(event: NationDeleteEvent) {
-        for (player in Bukkit.getOnlinePlayers()) {
-            Messages.broadCastSend(player, "broadcast.nation.deleted", null, event.nation)
-        }
-    }
 }

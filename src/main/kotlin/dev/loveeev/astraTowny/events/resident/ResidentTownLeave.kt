@@ -8,10 +8,19 @@ import org.bukkit.event.HandlerList
 class ResidentTownLeave(val resident: Resident) : Event(), Cancellable {
     private var cancelled = false // Track whether the event has been cancelled
 
-    val handlerList: HandlerList = HandlerList()
+    companion object {
+        // Статический метод getHandlerList
+        @JvmStatic
+        fun getHandlerList(): HandlerList {
+            return HANDLER_LIST
+        }
+
+        // Статическая переменная HandlerList
+        val HANDLER_LIST = HandlerList()
+    }
 
     override fun getHandlers(): HandlerList {
-        return handlerList
+        return HANDLER_LIST
     }
 
 

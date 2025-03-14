@@ -17,10 +17,19 @@ class ResidentDeleteEvent(val resident: Resident) : Event(), Cancellable {
         this.cancelled = cancelled
     }
 
-    val handlerList: HandlerList = HandlerList()
+    companion object {
+        // Статический метод getHandlerList
+        @JvmStatic
+        fun getHandlerList(): HandlerList {
+            return HANDLER_LIST
+        }
+
+        // Статическая переменная HandlerList
+        val HANDLER_LIST = HandlerList()
+    }
 
     override fun getHandlers(): HandlerList {
-        return handlerList
+        return HANDLER_LIST
     }
 
 }

@@ -19,7 +19,6 @@ object SchemeSQL {
                             "uuid CHAR(36) PRIMARY KEY," +
                             "name VARCHAR(255)," +
                             "capital VARCHAR(255)," +
-                            "king VARCHAR(255)," +
                             "balance VARCHAR(255)," +
                             "mapcolor VARCHAR(6)," +
                             "towns VARCHAR(255))",
@@ -42,8 +41,6 @@ object SchemeSQL {
                     "CREATE TABLE ${tablePrefix}RESIDENTS (" +
                             "uuid CHAR(36) PRIMARY KEY," +
                             "playername VARCHAR(255)," +
-                            "town VARCHAR(255)," +
-                            "nation VARCHAR(255)," +
                             "language VARCHAR(255))",
                     "Table RESIDENTS created successfully.")
 

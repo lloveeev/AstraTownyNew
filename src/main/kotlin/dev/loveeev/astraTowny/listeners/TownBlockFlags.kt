@@ -47,4 +47,5 @@ class TownBlockFlags : Listener {
     private fun getTownByChunk(chunk: Location): Town? {
         return TownManager.getTownBlock(chunk)?.town
     }
+
 }

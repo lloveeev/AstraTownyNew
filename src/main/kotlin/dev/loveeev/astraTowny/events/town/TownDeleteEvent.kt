@@ -15,10 +15,19 @@ class TownDeleteEvent(val town: Town) : Event(), Cancellable {
     override fun setCancelled(cancel: Boolean) {
         this.cancelled = cancel
     }
-    val handlerList: HandlerList = HandlerList()
 
-    override fun getHandlers(): HandlerList {
-        return handlerList
+    companion object {
+        // Статический метод getHandlerList
+        @JvmStatic
+        fun getHandlerList(): HandlerList {
+            return HANDLER_LIST
+        }
+
+        // Статическая переменная HandlerList
+        val HANDLER_LIST = HandlerList()
     }
 
+    override fun getHandlers(): HandlerList {
+        return HANDLER_LIST
+    }
 }

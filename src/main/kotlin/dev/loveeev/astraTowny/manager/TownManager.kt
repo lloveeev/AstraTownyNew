@@ -6,16 +6,17 @@ import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.Coord
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
-import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
+import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.entity.Player
-import java.util.UUID
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 object TownManager {
     val towns = ConcurrentHashMap<UUID, Town>()
     val nations = ConcurrentHashMap<UUID, Nation>()
-    val residents = ObjectArrayList<Resident>()
+    val residents = ObjectOpenHashSet<Resident>()
     val townBlocks = ConcurrentHashMap<WorldCoord, TownBlock>()
 
     fun hasTownBlock(worldCoord: WorldCoord) = townBlocks.containsKey(worldCoord)
@@ -26,6 +27,7 @@ object TownManager {
     fun getResidentNames() = residents.map { it.playerName }
     fun getTownBlock(location: Location) = location.let { townBlocks[WorldCoord.parseWorldCoord(it)] }
     fun getTownBlock(worldCoord: WorldCoord) = worldCoord.let { townBlocks[it] }
+    fun getTownBlock(chunk: Chunk) = chunk.let { townBlocks[WorldCoord(it.world, it.x, it.z)] }
 
     fun getTownBlock(coord: Coord): TownBlock? {
         for ((t, u) in townBlocks) {
