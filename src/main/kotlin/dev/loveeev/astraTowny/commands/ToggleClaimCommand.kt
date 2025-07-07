@@ -77,13 +77,11 @@ class ToggleClaimCommand : TabExecutor, Listener {
         val currentChunk = player.location.chunk
         val previousChunk = lastChunk[player]
 
-        // Выполняем команду только если игрок перешел в новый чанк
         if (currentChunk != previousChunk) {
             lastChunk[player] = currentChunk
 
-            val args = playerArgs[player] ?: return // На случай, если args не найдены
+            val args = playerArgs[player] ?: return
 
-            // Выполнение команды в зависимости от выбранного режима
             when (args[1].lowercase()) {
                 "claim" -> player.performCommand("t claim")
                 "unclaim" -> player.performCommand("t unclaim")
