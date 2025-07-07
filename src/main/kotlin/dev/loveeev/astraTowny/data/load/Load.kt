@@ -17,7 +17,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import java.sql.SQLException
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 
 class Load {
@@ -31,19 +30,32 @@ class Load {
             val tempResidents = ObjectOpenHashSet<Resident>() // Используем FastUtil для оптимизации списка
 
             SQL.getCon()?.use { connection ->
-                val query = "SELECT uuid, playername, language FROM ${SchemeSQL.tablePrefix}RESIDENTS"
+                val query = "SELECT uuid, playername, language, ranktown, ranknation FROM ${SchemeSQL.tablePrefix}RESIDENTS"
                 connection.prepareStatement(query).use { statement ->
                     val resultSet = statement.executeQuery()
                     while (resultSet.next()) {
                         val uuid = UUID.fromString(resultSet.getString("uuid"))
                         val playerName = resultSet.getString("playername")
                         val language = resultSet.getString("language") ?: "ru"
-                        tempResidents.add(Resident(playerName, uuid, language = language))
+                        val rankTown = resultSet.getString("ranktown")?.takeIf { it.isNotBlank() }
+                        val rankNation = resultSet.getString("ranknation")?.takeIf { it.isNotBlank() }
+
+                        val resident = Resident(playerName, uuid, language = language)
+                        if (rankTown != null) {
+                            TownManager.townRanks[rankTown]?.let { resident.assignTownRank(it) }
+                        }
+
+                        if (rankNation != null) {
+                            TownManager.nationRanks[rankNation]?.let { resident.assignNationRank(it) }
+                        }
+
+
+                        tempResidents.add(resident)
                     }
                 }
             }
 
-            TownManager.residents.addAll(tempResidents) // Массовое добавление
+            TownManager.residents.addAll(tempResidents)
 
         } catch (e: SQLException) {
             AstraTowny.instance.logger.log(Level.SEVERE, "Error loading residents", e)
@@ -68,7 +80,6 @@ class Load {
                         val mapColor = resultSet.getString("mapcolor")
 
                         val town = Town(name, uuid, mayor = mayor, homeBlock = homeBlock, spawnLocation = spawnLocation, balance = balance, mapColor = mapColor)
-
                         resultSet.getString("residents").split("#").forEach { resName ->
                             TownManager.getResident(resName)?.let { TownyUtil.addResidentInTown(it, town) }
                         }
@@ -120,7 +131,6 @@ class Load {
 
     fun loadTownBlocks() {
         try {
-            val townMap = TownManager.towns.values.associateBy { it.name }
             val tempTownBlocks = HashMap<WorldCoord, TownBlock>()
 
             SQL.getCon()?.use { connection ->
@@ -136,7 +146,7 @@ class Load {
                             val z = resultSet.getInt("Z")
                             val townName = resultSet.getString("town")
 
-                            val town = townMap[townName]
+                            val town = TownManager.towns[TownManager.getTown(townName)?.uuid]
                             if (town == null) {
                                 deleteStatement.setString(1, world)
                                 deleteStatement.setInt(2, x)
@@ -148,7 +158,6 @@ class Load {
                             val worldObj = Bukkit.getWorld(world) ?: continue
                             val townBlock = TownBlock(x, z, town, worldObj)
                             town.addClaimedChunk(townBlock)
-
                             tempTownBlocks[WorldCoord(worldObj, x, z)] = townBlock
                         }
                         deleteStatement.executeBatch()
@@ -157,17 +166,20 @@ class Load {
             }
 
             townBlocks.putAll(tempTownBlocks) // Массовое добавление
-
         } catch (e: SQLException) {
             AstraTowny.instance.logger.log(Level.SEVERE, "Error loading townBlocks", e)
         }
     }
 
     private fun parseHomeBlock(data: String?): HomeBlock? =
-        data?.split("#")?.let { parts -> Bukkit.getWorld(parts[0])?.let { HomeBlock(parts[1].toInt(), parts[2].toInt(), it) } }
+        data?.split("#")?.let {
+            parts -> Bukkit.getWorld(parts[0])?.let { HomeBlock(parts[1].toInt(), parts[2].toInt(), it) }
+        }
 
     private fun parseLocation(data: String?): Location? =
         data?.split("#")?.let { parts ->
-            Bukkit.getWorld(parts[0])?.let { Location(it, parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble(), parts[4].toFloat(), parts[5].toFloat()) }
+            Bukkit.getWorld(parts[0])?.let {
+                Location(it, parts[1].toDouble(), parts[2].toDouble(), parts[3].toDouble(), parts[4].toFloat(), parts[5].toFloat())
+            }
         }
 }

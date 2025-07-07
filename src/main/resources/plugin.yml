@@ -13,3 +13,12 @@ commands:
   nation:
     aliases:
       - n
+  townyadmin:
+    aliases:
+      - ta
+      - tadmin
+    permission: astratowny.admin
+
+permissions:
+  astratowny.admin:
+    default: op

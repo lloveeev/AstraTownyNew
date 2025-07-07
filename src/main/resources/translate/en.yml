@@ -1,0 +1,187 @@
+# General Messages
+message_console: "This command is only available in-game."
+message_town_exist: "You are not part of any town."
+message_town_have: "You already have a town."
+message_nation_exist: "You are not part of any nation."
+command_exit: "Such a command does not exist."
+error: "Error"
+permission: "You do not have enough permissions to use this command."
+money_error: "You do not have enough gold."
+player_error: "Such a player does not exist."
+town_error: "Such a city does not exist"
+player_offline: "A player with this nickname is not online."
+args: "Not enough arguments."
+
+# Town Management Messages
+town:
+  create:
+    command: "To create a town, use /t create <town>"
+    success: "You have founded a new town {town}."
+    exist: "A town with this name already exists."
+  join:
+    already_in_town: "You are already in a town!"
+    resident_join: "{player} has joined the town."
+    accept: "Use /t accept <town name>"
+    accept_error: "You do not have an invitation from this town/nation."
+    accept_confirm: "You have joined."
+  leave:
+    confirm: "You have successfully left the town."
+    error: "You cannot leave the town while you are its mayor!"
+    resident_leave: "{player} has left the town."
+  delete:
+    confirm: "The town has been successfully deleted."
+  transfer:
+    command: "Use /t transfer <nickname> to transfer ownership."
+    error: "Your towns do not match!"
+    success: "You have successfully transferred ownership."
+  set:
+    name:
+      command: "Use /t set name <name>"
+      success: "You have successfully changed the name!"
+    map_color:
+      command: "Use /t set mapcolor <color>"
+      success: "You changed the color to {mapcolor}."
+    spawn:
+      command: "Use /t set spawn"
+      success: "You have set a new town spawn."
+    args: "Use /t set args"
+  kick:
+    command: "Use /t kick <Player>"
+    success: "You have successfully kicked the player."
+    kick_player: "You have been kicked."
+    self: "You cannot kick yourself!"
+    not_mayor: "You cannot kick the mayor."
+    not_in_town: "The player is not part of your town."
+  claim:
+    success: "You have claimed a new chunk for the town."
+    error: "There are no town-owned chunks nearby."
+    already_claimed: "This chunk is already part of a town."
+  unclaim:
+    success: "You have unclaimed a town chunk."
+    home_block_error: "You cannot unclaim the Homeblock."
+    not_part_of_town: "This chunk is not part of your town."
+  home_block:
+    set: "You have set a new town Homeblock."
+    already_set: "This chunk is already the Homeblock."
+  flags:
+    success: "You have successfully set the flag."
+    error: "You incorrectly specified true/false."
+    args: "Use /t toggle PERMTYPE true/false."
+
+rank:
+  give:
+    command: "Use /t rank give <rank> <player> or /n rank give <rank> <player>"
+    success: "Rank {rankName} has been assigned to player {player}."
+    error: "Failed to assign rank. Check the command syntax."
+    no_permission: "You do not have permission to assign this rank."
+    rank_not_found: "Rank {rankName} not found."
+    player_not_found: "Player with nickname {player} not found."
+  remove:
+    command: "Use /rank remove <type> <rank>"
+    success: "Rank {rankName} has been removed from player {player}."
+    error: "Failed to remove rank. Check the command syntax."
+    no_rank: "Player {player} does not have this rank."
+    rank_not_found: "Rank {rankName} not found."
+  list:
+    command: "Use /rank list <type>"
+    town_ranks: "Available town ranks: {townRanks}"
+    nation_ranks: "Available nation ranks: {nationRanks}"
+    error: "Failed to retrieve rank list. Check the command syntax."
+    no_ranks: "There are no available ranks for this type."
+
+# Nation Messages
+nation:
+  create:
+    command: "To create a nation, use /n create <town>"
+    need_town: "You need a town to create a nation!"
+    success: "You have founded a new nation {nation}."
+    exist: "A nation with this name already exists."
+  delete:
+    success: "You have successfully deleted {nation}."
+  join:
+    already_in_nation: "You are already in a nation!"
+    town_join: "{town} has joined your nation."
+    accept: "You have been invited to {nation}."
+    accept_error: "You do not have an invitation from this nation."
+  leave:
+    confirm: "You have successfully left the nation."
+    town_leave: "{town} has left your nation."
+    capital_error: "You cannot leave a nation where you are the capital."
+  transfer:
+    command: "Use /n transfer <town> to transfer the nation."
+    success: "You have successfully transferred ownership."
+  set:
+    name:
+      command: "Use /n set <parameter> <name>"
+    capital:
+      success: "You have successfully changed the capital."
+  kick:
+    command: "Use /n kick <Town>"
+    success: "You have successfully expelled the town from the nation."
+    town_no_nation: "The town is not part of your nation."
+    not_kick_capital: "You cannot expel the capital from the nation."
+
+# Chat & Communication
+chat:
+  global: "Global chat enabled!"
+  local: "Local chat enabled!"
+  nation: "Nation chat enabled!"
+  town: "Town chat enabled!"
+  union: "Union chat enabled!"
+  errors:
+    union: "You are not part of a union."
+    nation: "You are not part of a nation."
+    town: "You are not part of a town."
+
+# Chunk Notifications
+chunk:
+  enter:
+    town: "You have entered the town {town}."
+    wild: "You have entered the Wilds."
+    town_sub: ""
+  leave:
+    town: "You have left {town}."
+  action_bar: "       {town}       "
+
+# Block Interaction
+block:
+  break: "You cannot break blocks here!"
+  interact: "You cannot interact here!"
+  message_cancel_break_plot: "You cannot break blocks in this plot."
+  entity: "You cannot kill here!"
+
+# Map
+map:
+  name: "AstraMap"
+
+# Announcements
+broadcast:
+  new_day: "A new day has begun!"
+  new_hour: ""
+  town:
+    created: "A new town has been created - {townall}."
+    joined: "A new player has joined your town: {player}."
+    removed: "{player} has left the town."
+    deleted: "{townall} has been deleted."
+  nation:
+    created: "A new nation has been formed - {nationall}."
+    joined: "A new town has joined your nation: {town}."
+    removed: "A town has left your nation - {town}."
+    deleted: "{nationall} has been deleted."
+  resident:
+    new: "A new player has joined: "
+    leave: "WE HAVE LOST A SOUL: "
+
+# Confirmations & Invitations
+confirmation:
+  text: "Click to confirm."
+  invite:
+    sent: "Invitation sent."
+    approve: "You have been invited to."
+    already_invited: "You have already invited this player."
+    already_in_town: "The player is already in the town."
+    self_invite: "You cannot invite yourself."
+
+# Miscellaneous
+success: "Success!"
+language: "You have changed the language to {language}."

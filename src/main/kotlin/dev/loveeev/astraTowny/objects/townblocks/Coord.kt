@@ -13,7 +13,7 @@ open class Coord(
         }
     }
 
-    fun add(xOffset: Int, zOffset: Int): Coord {
+    open fun add(xOffset: Int, zOffset: Int): Coord {
         return Coord(x + xOffset, z + zOffset)
     }
 

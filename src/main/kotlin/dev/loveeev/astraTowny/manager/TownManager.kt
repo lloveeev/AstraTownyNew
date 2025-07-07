@@ -1,6 +1,7 @@
 package dev.loveeev.astratowny.manager
 
 import dev.loveeev.astratowny.objects.Nation
+import dev.loveeev.astratowny.objects.Rank
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.Coord
@@ -18,6 +19,8 @@ object TownManager {
     val nations = ConcurrentHashMap<UUID, Nation>()
     val residents = ObjectOpenHashSet<Resident>()
     val townBlocks = ConcurrentHashMap<WorldCoord, TownBlock>()
+    val townRanks = ConcurrentHashMap<String, Rank>()
+    val nationRanks = ConcurrentHashMap<String, Rank>()
 
     fun hasTownBlock(worldCoord: WorldCoord) = townBlocks.containsKey(worldCoord)
     fun hasTownBlock(worldCoord: TownBlock) = townBlocks.contains(worldCoord)

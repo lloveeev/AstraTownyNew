@@ -41,7 +41,9 @@ object SchemeSQL {
                     "CREATE TABLE ${tablePrefix}RESIDENTS (" +
                             "uuid CHAR(36) PRIMARY KEY," +
                             "playername VARCHAR(255)," +
-                            "language VARCHAR(255))",
+                            "language VARCHAR(255), " +
+                            "ranktown VARCHAR(255)," +
+                            "ranknation VARCHAR(255))",
                     "Table RESIDENTS created successfully.")
 
                 createTableIfNotExists(connection, "${tablePrefix}TOWNBLOCKS",

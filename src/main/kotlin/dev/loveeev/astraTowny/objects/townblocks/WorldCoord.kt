@@ -57,8 +57,13 @@ data class WorldCoord(
         }
 
         fun parseWorldCoord(coord: Coord): WorldCoord? {
+            println("test7")
             return Bukkit.getWorld("world")?.let { WorldCoord(it, toCell(coord.x), toCell(coord.z)) }
         }
+    }
+
+    override fun add(xOffset: Int, zOffset: Int): WorldCoord {
+        return WorldCoord(worldName, worldUUID, x + xOffset, z + zOffset)
     }
 
     fun getTownBlockOrNull(): TownBlock? {

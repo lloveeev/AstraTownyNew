@@ -9,6 +9,7 @@ import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.utils.TextUtil
 import org.bukkit.Bukkit
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
 object Messages {
@@ -25,8 +26,23 @@ object Messages {
         Bukkit.getPlayer(player.playerName)!!.sendMessage(PREFIX + TextUtil.colorize(message))
     }
 
+    fun send(player: CommandSender, key: String) {
+        if (player is Player) {
+            send(player, key)
+        } else {
+            val message = TranslateYML.getTranslation(key)
+            player.sendMessage(PREFIX + TextUtil.colorize(message))
+        }
+    }
+
+
 
     fun sendMessage(player: Player, message: String) {
+        player.sendMessage(PREFIX + TextUtil.colorize(message))
+    }
+
+
+    fun sendMessage(player: CommandSender, message: String) {
         player.sendMessage(PREFIX + TextUtil.colorize(message))
     }
 

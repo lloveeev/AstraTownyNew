@@ -6,14 +6,9 @@ import dev.loveeev.astratowny.database.SchemeSQL
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
-import dev.loveeev.astratowny.objects.townblocks.TownBlock
-import dev.loveeev.astratowny.objects.townblocks.WorldCoord
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import org.bukkit.Location
 import java.sql.SQLException
-import java.util.UUID
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import java.util.logging.Level
 
 class UnLoad {
@@ -26,11 +21,13 @@ class UnLoad {
         TownManager.residents.parallelStream().forEach { resident ->
                 try {
                     SQL.getCon()?.use { connection ->
-                        val query = "REPLACE INTO ${SchemeSQL.tablePrefix}RESIDENTS (uuid, playername, language) VALUES (?, ?, ?)"
+                        val query = "REPLACE INTO ${SchemeSQL.tablePrefix}RESIDENTS (uuid, playername, language, ranktown, ranknation) VALUES (?, ?, ?, ?, ?)"
                         connection.prepareStatement(query).use { statement ->
                             statement.setString(1, resident.uuid.toString())
                             statement.setString(2, resident.playerName)
                             statement.setString(3, resident.language)
+                            statement.setString(4, resident.townRank?.name)
+                            statement.setString(5, resident.nationRank?.name)
                             statement.executeUpdate()
                         }
                     }
@@ -39,8 +36,7 @@ class UnLoad {
                 }
             }
     }
-
-
+    /*
     fun unloadTownBlocks() {
         TownManager.townBlocks.values.parallelStream().forEach { townBlock ->
             try {
@@ -59,6 +55,8 @@ class UnLoad {
             }
         }
     }
+
+     */
 
 
 

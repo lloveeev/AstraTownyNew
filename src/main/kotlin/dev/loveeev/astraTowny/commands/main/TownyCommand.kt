@@ -2,21 +2,28 @@ package dev.loveeev.astratowny.commands.main
 
 
 import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.commands.api.AstraCommandsAddonApi
+import dev.loveeev.astratowny.commands.api.BaseCommandType
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.HomeBlock
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
+import dev.loveeev.astratowny.response.TownyResponse
 import dev.loveeev.astratowny.utils.TownyUtil
+import dev.loveeev.utils.BukkitUtils
 import dev.loveeev.utils.TextUtil
-import net.kyori.adventure.text.Component
+import me.clip.placeholderapi.PlaceholderAPI
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
 import net.md_5.bungee.api.ChatMessageType
 import net.md_5.bungee.api.chat.ClickEvent
 import net.md_5.bungee.api.chat.ComponentBuilder
 import net.md_5.bungee.api.chat.HoverEvent
 import net.md_5.bungee.api.chat.TextComponent
 import org.bukkit.Bukkit
-import org.bukkit.command.*
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
+import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
 import java.util.*
 
@@ -29,11 +36,12 @@ class TownyCommand : TabExecutor {
         }
 
         val resident = TownManager.getResident(sender) ?: return true
+        if (AstraCommandsAddonApi.handleDynamicArgument(BaseCommandType.TOWNY, sender, args)) return true
         if (args.isEmpty()) {
             if (!resident.hasTown) {
                 Messages.send(sender, "message_town_exist")
             } else {
-               sender.sendMessage("салам")
+               sendTownInfo(resident.town!!, resident.getPlayer())
             }
             return true
         }
@@ -52,6 +60,7 @@ class TownyCommand : TabExecutor {
                 "kick" -> handleKick(resident, args, sender)
                 "transfer" -> handleTransfer(resident,sender, args)
                 "toggle" -> flagControl(args, resident, sender)
+                "rank" -> handleTownRank(args, resident, sender)
                 else -> handleDefaultCommand(args, resident, sender)
             }
         } catch (e: Exception) {
@@ -61,14 +70,78 @@ class TownyCommand : TabExecutor {
         return true
     }
 
+    private fun handleTownRank(args: Array<out String>, resident: Resident, sender: Player) {
+        if (args.isEmpty()) {
+            Messages.send(sender, "rank.give.command")
+            return
+        }
+
+        val action = args[1].lowercase() // Действие: give, remove, list
+        val rankName = args[2].lowercase() // Название ранга
+
+        when (action) {
+            "give", "add" -> {
+                if (args.size < 4) {
+                    Messages.send(sender, "rank.give.error")
+                    return
+                }
+                TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_RANK_GIVE")
+                TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_RANK_GIVE_$rankName")
+                val targetPlayerName = args[3]
+                val targetPlayer = Bukkit.getPlayerExact(targetPlayerName)
+                if (targetPlayer == null) {
+                    Messages.send(sender, "rank.give.player_not_found")
+                    return
+                }
+                val targetResident = TownManager.getResident(targetPlayer.uniqueId)
+
+                val rank = TownManager.townRanks[rankName]
+                if (rank != null) {
+                    targetResident?.assignTownRank(rank)
+                    Messages.send(sender, "rank.give.success")
+                } else {
+                    Messages.send(sender, "rank.give.rank_not_found")
+                }
+            }
+
+            "remove" -> {
+                TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_RANK_REMOVE")
+                if (resident.townRank?.name == rankName) {
+                    resident.townRank = null
+                    Messages.send(sender, "rank.remove.success")
+                } else {
+                    Messages.send(sender, "rank.remove.no_rank")
+                }
+            }
+
+            "list" -> {
+                Messages.send(sender, "rank.list.town_ranks")
+            }
+
+            else -> {
+                Messages.send(sender, "rank.give.error")
+            }
+        }
+    }
+
     private fun handleDefaultCommand(args: Array<out String>, resident: Resident, sender: Player) {
         val town = TownManager.getTown(args[0])
         if(town != null){
-            Messages.sendMessage(sender, "${town.name} ${if(town.hasNation) town.nation?.name else " "}" )
+            sendTownInfo(town, sender)
         } else{
-            Messages.sendMessage(sender, "ну нет такого города брат")
+            Messages.send(sender, "town_error")
         }
 
+    }
+    private fun sendTownInfo(town: Town, player: Player) {
+        val info = listOf(
+            PlaceholderAPI.setPlaceholders(player, "&#DDA840Информация о городе ${town.name}"),
+            PlaceholderAPI.setPlaceholders(player," &#DDA840Мэр: &f${if(town.mayor!!.isNpc()) "Нет" else town.mayor?.playerName}"),
+            PlaceholderAPI.setPlaceholders(player," &#DDA840Нация: &f${town.nation?.name ?: "Нет"}"),
+            PlaceholderAPI.setPlaceholders(player," &#DDA840Людские ресурсы: &f%town_manpower%"),
+            PlaceholderAPI.setPlaceholders(player," &#DDA840Жители &f| &#DDA840Звания &f| &#DDA840Здания")
+        )
+        info.forEach { Messages.sendMessage(player, it) }
     }
 
     private fun handleSpawn(resident: Resident, sender: Player) {
@@ -90,7 +163,7 @@ class TownyCommand : TabExecutor {
             Messages.send(sender, "message_town_exist")
             return
         }
-        if (!resident.isMayor) {
+        if (!resident.isMayor()) {
             Messages.send(sender, "permission")
             return
         }
@@ -103,7 +176,11 @@ class TownyCommand : TabExecutor {
             return
         }
         TownyUtil.removeResidentInTown(resident)
-        TownyUtil.setMayor(targetResident)
+        val response = TownyUtil.setMayor(targetResident)
+        if (!response.isSuccess) {
+            BukkitUtils.logToConsole(response.message)
+            return
+        }
         TownyUtil.addResidentInTown(resident, targetResident.town)
         Messages.send(sender,"town.transfer.success")
     }
@@ -133,7 +210,7 @@ class TownyCommand : TabExecutor {
             Messages.send(sender, "message_town_exist")
             return
         }
-        if (!resident.isMayor) {
+        if (!resident.isMayor()) {
             Messages.send(sender, "permission")
             return
         }
@@ -173,7 +250,7 @@ class TownyCommand : TabExecutor {
             return
         }
 
-        if (kickResident.hasTown && !kickResident.isMayor) {
+        if (kickResident.hasTown && !kickResident.isMayor()) {
             TownyUtil.removeResidentInTown(kickResident)
             Messages.send(sender, "town.kick.success")
             Messages.send(Bukkit.getOfflinePlayer(kickResident.playerName) as Player, "town.kick.kick_player")
@@ -315,7 +392,7 @@ class TownyCommand : TabExecutor {
 
         when (args.size) {
             1 -> {
-                if (resident.isMayor) {
+                if (resident.isMayor()) {
                     val message = TextComponent(TextUtil.colorize(Messages.getMessage(player, "confirmation.text")!!))
                     val confirmCommand = TextComponent("[/t delete confirm]").apply {
                         clickEvent = ClickEvent(ClickEvent.Action.RUN_COMMAND, "/t delete confirm")
@@ -339,7 +416,7 @@ class TownyCommand : TabExecutor {
     }
 
     private fun deleteTown(resident: Resident, player: Player) {
-        if (resident.hasTown && resident.isMayor) {
+        if (resident.hasTown && resident.isMayor()) {
             resident.town?.let { TownyUtil.deleteTown(it) }
         } else {
             Messages.send(player, "message_town_exist")
@@ -352,7 +429,7 @@ class TownyCommand : TabExecutor {
             Messages.send(player, "message_town_exist")
             return
         }
-        if (!resident.isMayor) {
+        if (!resident.isMayor()) {
             TownyUtil.removeResidentInTown(resident)
             Messages.send(player, "town.leave.confirm")
         } else {
@@ -380,9 +457,8 @@ class TownyCommand : TabExecutor {
         }
 
 
-
-
         TownyUtil.createTownBlock(chunk.world, resident.town!!, chunk.x, chunk.z)
+        TownManager.getTownBlock(claimCoord)?.let { TownyUtil.addTownBlockToTown(resident.town!!, it) }
         Messages.send(player, "town.claim.success")
     }
 
@@ -484,6 +560,7 @@ class TownyCommand : TabExecutor {
 
     private fun handleSecondArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when (args[0].lowercase()) {
+            "rank" -> getPartialMatches(args[1], listOf("give", "remove", "list"))
             "invite" -> getPartialMatches(args[1], Bukkit.getOnlinePlayers().map(Player::getName))
             "set" -> getPartialMatches(args[1], listOf("spawn", "homeblock", "mapcolor", "name", "mapcolorall"))
             "kick" -> if (resident.hasTown) getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
@@ -496,6 +573,7 @@ class TownyCommand : TabExecutor {
 
     private fun handleThirdArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when {
+            args[1].lowercase() == "rank" -> getPartialMatches(args[1], TownManager.townRanks.keys().toList())
             args[1].lowercase() in listOf("add", "remove") -> if (resident.hasTown) getPartialMatches(args[2], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
             args[0].lowercase() == "army" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
             else -> emptyList()

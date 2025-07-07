@@ -3,6 +3,7 @@ package dev.loveeev.astratowny
 import dev.loveeev.astratowny.listeners.ResidentEvent
 import dev.loveeev.astratowny.commands.LangCommand
 import dev.loveeev.astratowny.commands.ToggleClaimCommand
+import dev.loveeev.astratowny.commands.admin.TownyAdmin
 import dev.loveeev.astratowny.commands.main.NationCommand
 import dev.loveeev.astratowny.commands.main.TownyCommand
 
@@ -12,18 +13,22 @@ import dev.loveeev.astratowny.data.load.Load
 import dev.loveeev.astratowny.data.unload.UnLoad
 import dev.loveeev.astratowny.database.SQL
 import dev.loveeev.astratowny.database.SQL.closeConnection
+import dev.loveeev.astratowny.database.SchemeSQL
 import dev.loveeev.astratowny.hooks.PlaceholderHook
 import dev.loveeev.astratowny.listeners.TownBlockFlags
 import dev.loveeev.astratowny.listeners.TownBlockInteract
 import dev.loveeev.astratowny.listeners.TownBlockMovePlayer
 import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Rank
 import dev.loveeev.astratowny.timers.TimeChecker
 import dev.loveeev.astratowny.utils.map.MapHud.startScoreboardUpdates
 import org.bukkit.Bukkit
 import org.bukkit.command.TabExecutor
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.logging.Level
+import java.util.stream.Collectors
 import kotlin.math.log
 
 class AstraTowny : JavaPlugin() {
@@ -31,11 +36,13 @@ class AstraTowny : JavaPlugin() {
     companion object {
         lateinit var instance: AstraTowny
             private set
+        lateinit var defaultPermission: List<String>
+            private set
     }
 
     override fun onEnable() {
         instance = this
-
+        defaultPermission = config.getStringList("nomad")
         //Main loads
         loadConfig()
         registerCommands()
@@ -49,7 +56,6 @@ class AstraTowny : JavaPlugin() {
     }
 
     override fun onDisable() {
-        closeConnection()
         unloadData()
         logger.log(Level.INFO, "DATA SAVE SUCCESSFULLY")
         closeConnection()
@@ -57,6 +63,7 @@ class AstraTowny : JavaPlugin() {
 
     fun loadData() {
         val mils = System.currentTimeMillis()
+        SchemeSQL.loadTable()
         logger.info("START LOAD DATA")
         val load = Load()
         logger.info("START LOAD RESIDENTS")
@@ -74,6 +81,7 @@ class AstraTowny : JavaPlugin() {
         logger.info("DATA LOAD SUCCESSFULLY")
         logger.info("DataBase loaded in ${System.currentTimeMillis() - mils} ms")
         logger.info("Loaded townBlocks: ${TownManager.townBlocks.size}")
+        logger.info(TownManager.getTown("penis")?.townBlocks.toString())
     }
 
     fun unloadData() {
@@ -134,7 +142,19 @@ class AstraTowny : JavaPlugin() {
         DatabaseYML
         TranslateYML
         saveResource("settings/database.yml", false)
+        saveResource("settings/rank.yml", false)
         saveDefaultConfig()
+
+        val configFile = File(dataFolder, "settings/rank.yml")
+        if (!configFile.exists()) {
+            saveResource("settings/rank.yml", false)
+        }
+        val (townRanks, nationRanks) = loadRanks(configFile)
+        TownManager.townRanks.putAll(townRanks)
+        TownManager.nationRanks.putAll(nationRanks)
+
+
+
         for (lang in config.getStringList("language")) {
             val file = File(dataFolder, "translate/$lang.yml")
             if (!file.exists()) {
@@ -143,10 +163,32 @@ class AstraTowny : JavaPlugin() {
         }
     }
 
+
+
+    fun loadRanks(configFile: File): Pair<Map<String, Rank>, Map<String, Rank>> {
+        val config = YamlConfiguration.loadConfiguration(configFile)
+
+        val townRanks = mutableMapOf<String, Rank>()
+        val nationRanks = mutableMapOf<String, Rank>()
+
+        config.getConfigurationSection("townRanks")?.getKeys(false)?.forEach { rankName ->
+            val permissions = config.getStringList("townRanks.$rankName").toSet()
+            townRanks[rankName] = Rank(rankName, permissions)
+        }
+
+        config.getConfigurationSection("nationRanks")?.getKeys(false)?.forEach { rankName ->
+            val permissions = config.getStringList("nationRanks.$rankName").toSet()
+            nationRanks[rankName] = Rank(rankName, permissions)
+        }
+
+        return Pair(townRanks, nationRanks)
+    }
+
     private fun registerCommands(){
         register("language", LangCommand())
         register("towny", TownyCommand())
         register("nation", NationCommand())
+        register("townyadmin", TownyAdmin())
     }
 
     fun register(name: String?, tabExecutor: TabExecutor?) {

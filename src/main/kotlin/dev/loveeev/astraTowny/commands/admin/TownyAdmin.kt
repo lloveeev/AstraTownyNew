@@ -1,573 +1,443 @@
-package dev.loveeev.astraTowny.commands.admin;
+package dev.loveeev.astratowny.commands.admin
 
-import dev.loveeev.astraTowny.Core;
-import dev.loveeev.astratowny.chat.Messages;
-import dev.loveeev.astratowny.config.TranslateYML;
-import dev.loveeev.astratowny.utils.BukkitUtils;
-import dev.loveeev.astratowny.utils.TownyUtil;
-import dev.loveeev.astratowny.utils.map.BorderUtil;
-import dev.loveeev.astratowny.utils.map.MapHud;
-import dev.loveeev.astratowny.objects.townblocks.WorldCoord;
-import dev.loveeev.astratowny.timers.NewDayEvent;
-import dev.loveeev.astratowny.objects.townblocks.HomeBlock;
-import dev.loveeev.astratowny.config.ConfigYML;
-import dev.loveeev.astratowny.manager.TownManager;
-import dev.loveeev.astratowny.objects.Nation;
-import dev.loveeev.astratowny.events.nation.NationCreateEvent;
-import dev.loveeev.astratowny.events.nation.NationDeleteEvent;
-import dev.loveeev.astratowny.objects.Resident;
-import dev.loveeev.astratowny.objects.Rank;
-import dev.loveeev.astratowny.objects.townblocks.TownBlocks;
-import dev.loveeev.astratowny.objects.Town;
-import dev.loveeev.astratowny.events.town.TownCreateEvent;
-import dev.loveeev.astratowny.events.town.TownDeleteEvent;
-import dev.loveeev.astratowny.utils.ChatUtil;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.BorderUtil
+import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.config.TranslateYML
+import dev.loveeev.astratowny.utils.TownyUtil
 
-import javax.annotation.Nullable;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.TextStyle;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import dev.loveeev.astratowny.utils.map.MapHud
+import dev.loveeev.astratowny.objects.townblocks.WorldCoord
+import dev.loveeev.astratowny.timers.NewDayEvent
+import dev.loveeev.astratowny.objects.townblocks.HomeBlock
+import dev.loveeev.astratowny.manager.TownManager
+import dev.loveeev.astratowny.objects.Nation
+import dev.loveeev.astratowny.objects.Town
+import dev.loveeev.astratowny.objects.townblocks.TownBlock
+import dev.loveeev.utils.BukkitUtils
+import dev.loveeev.utils.ChatUtil
+import org.bukkit.Bukkit
+import org.bukkit.command.Command
+import org.bukkit.command.CommandSender
+import org.bukkit.command.TabExecutor
+import org.bukkit.entity.Player
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.TextStyle
+import java.util.*
 
-public class TownyAdmin implements TabExecutor {
-    @Override
-    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        if (!(commandSender instanceof Player player)) {
-            commandSender.sendMessage(Messages.messageconsole());
-            return true;
+class TownyAdmin : TabExecutor {
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+        // Проверяем, если аргументы пустые
+        if (args.isEmpty()) {
+            Messages.send(sender, "args")
+            return true
         }
-        if(args.length < 1){
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-            return true;
+
+        // Обработка команд
+        when (args[0]) {
+            "nation" -> nation(args, sender)
+            "newday" -> newDay(sender)
+            "reload" -> reload(args, sender)
+            "resetbanks" -> resetBanks(args, sender)
+            "town" -> town(args, sender)
+            "map" -> {
+                if(sender is Player) {
+                    MapHud.toggleMapHud(sender)
+                } else {
+                    Messages.send(sender, "message_console")
+                }
+            }
+            "fill" -> fill(args, sender)
+            else -> {
+                Messages.send(sender, "command_exit")
+            }
         }
-        switch (args[0]){
-            case "nation" -> nation(args,player);
-            case "newday" -> newday(player);
-            case "reload" -> reload(args,player);
-            case "resetbanks" -> resetbanks(args,player);
-            case "town" -> town(args,player);
-            case "map" -> MapHud.toggleMapHud(player);
-            case "fill" -> fill(args,player);
-            case "load" -> load(args,player);
-        }
-        return false;
+        return true
     }
 
-
-    public void fill(String[] args, Player player){
-        Town town = TownManager.getInstance().getTown(player);
-
-        if (town == null) {
-            ChatUtil.sendSuccessNotification(player, Messages.townexist(player));
-            return;
-        }
-        final List<WorldCoord> selection = getTownClaimSelectionOrThrow(player, args, town);
-        for (WorldCoord coord : selection) {
-            TownBlocks townBlocks = new TownBlocks(coord.getX(),coord.getZ(),town,coord.getBukkitWorld());
-            TownManager.getInstance().addTownBlock(townBlocks);
-            town.addClaimedChunk(townBlocks);
+    private fun fill(args: Array<out String>, sender: CommandSender) {
+        val player = sender as? Player ?: run {
+            Messages.send(sender, "message_console")
+            return
         }
 
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(player, "Такого города не существует!")
+            return
+        }
+        val selection = getTownClaimSelectionOrThrow(player, args, town)
+        for (coord in selection) {
+            val townBlocks = TownBlock(coord.x, coord.z, town, Bukkit.getWorld(coord.worldName)!!)
+            TownManager.addTownBlock(townBlocks)
+            town.addClaimedChunk(townBlocks)
+        }
 
-        ChatUtil.sendSuccessNotification(player, "Все внутренние блоки территории города были успешно заполнены!");
+        Messages.sendMessage(sender, "Все внутренние блоки территории города были успешно заполнены!")
     }
 
-    private void load(String[] args, Player player){
-        for (Town town : TownManager.getInstance().getTowns().values()){
-            Rank ranktown = TownManager.getInstance().getRank(ConfigYML.defaultPerm,town);
-            Rank rankMayor = TownManager.getInstance().getRank(ConfigYML.mayorname,town);
-            Bukkit.getLogger().info(town.getName() + " " + ranktown + " " + rankMayor);
-            if(ranktown == null){
-                TownyUtil.createRank(ConfigYML.defaultPerm,town,UUID.randomUUID());
-            }
-            if(rankMayor == null){
-                TownyUtil.createRank(ConfigYML.mayorname,town,UUID.randomUUID());
-            }
-        }
-        for (Nation nation : TownManager.getInstance().getNations().values()){
-            Rank rank = TownManager.getInstance().getRank(ConfigYML.defaultnationname,nation);
-            Rank rankNation = TownManager.getInstance().getRank(ConfigYML.kingname,nation);
-            Bukkit.getLogger().info(nation.getName() + " " + rank + " " + rankNation);
-            if(rank == null){
-                TownyUtil.createRank(ConfigYML.defaultnationname,nation,UUID.randomUUID());
-            }
-            if(rankNation == null){
-                TownyUtil.createRank(ConfigYML.kingname,nation,UUID.randomUUID());
-            }
-        }
+    private fun getTownClaimSelectionOrThrow(player: Player, split: Array<out String>, town: Town): Collection<WorldCoord> {
+        val playerWorldCoord = WorldCoord.parseWorldCoord(player)
+        val result = BorderUtil.getFloodFillableCoords(town, playerWorldCoord)
+        println(town.townBlocks)
+        println(result.type)
+        println(result.feedback)
+        return result.coords
     }
 
-    private static List<WorldCoord> getTownClaimSelectionOrThrow(Player player, String[] split, Town town) {
-        List<WorldCoord> selection;
-        WorldCoord playerWorldCoord = WorldCoord.parseWorldCoord(player);
-        final World world = playerWorldCoord.getBukkitWorld();
-
-        if (world == null) {
-            ChatUtil.sendSuccessNotification(player, Messages.error(player));
-            return new ArrayList<>();
+    private fun nation(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 2) {
+            Messages.send(sender, "args")
+            return
         }
 
-        final BorderUtil.FloodfillResult result = BorderUtil.getFloodFillableCoords(town, playerWorldCoord);
-
-        selection = new ArrayList<>(result.coords());
-        return selection;
-    }
-
-
-
-
-
-
-    public void nation(String @NotNull [] args, Player player){
-        if(args.length < 2){
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-            return;
-        }
-        if(args[1].equalsIgnoreCase("new") || args[1].equalsIgnoreCase("create")){
-            if(args.length < 3){
-                ChatUtil.sendSuccessNotification(player,Messages.args(player));
-                return;
+        when {
+            args[1].equals("new", ignoreCase = true) || args[1].equals("create", ignoreCase = true) -> {
+                if (args.size < 3) {
+                    Messages.send(sender, "args")
+                    return
+                }
+                TownyUtil.createNation(args[2], UUID.randomUUID(), null, null)
+                Messages.sendMessage(sender, "Нация ${args[2]} успешно создана.")
             }
-            TownyUtil.createNation(args[2],UUID.randomUUID(),null,null);
-        } else if(TownManager.getInstance().getNation(args[1]) != null){
-            if(args.length < 4){
-                ChatUtil.sendSuccessNotification(player,Messages.args(player));
-                return;
-            }
-            switch (args[2]){
-                case "set" -> {
-                    if(args.length < 5){
-                        ChatUtil.sendSuccessNotification(player,Messages.args(player));
-                        return;
-                    }
-                    switch (args[3]){
-                        case "capital" ->{
-                            Nation nation = TownManager.getInstance().getNation(args[1]);
-                            if(nation == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                                return;
-                            }
-                            Town town = TownManager.getInstance().getTown(args[4]);
-                            if(town == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                                return;
-                            }
-                            if(town.getNation() != nation){
-                                ChatUtil.sendSuccessNotification(player,Messages.alrnation(player));
-                                return;
-                            }
-                            nation.setCapital(town);
-                        }
-                        case "king" -> {
-                            Nation nation = TownManager.getInstance().getNation(args[1]);
-                            if(nation == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                                return;
-                            }
-                            Resident resident = TownManager.getInstance().getResident(args[4]);
-                            if(resident == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.playererror(player));
-                                return;
-                            }
-                            if(resident.getNation() != nation){
-                                ChatUtil.sendSuccessNotification(player,Messages.playernotthisnation(player));
-                                return;
-                            }
-                            if(nation.getKing() != null){
-                                TownyUtil.removeResidentInNation(resident);
-                                TownyUtil.addResidentInNation(resident,nation);
-                            }
-                        }
-                        case "mapcolor" -> {
-                            Nation nation = TownManager.getInstance().getNation(args[1]);
-                            if(nation == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                                return;
-                            }
-                            nation.setMapColor(args[4]);
-
-                            ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                        }
-                        case "fullmapcolor" ->{
-                            Nation nation = TownManager.getInstance().getNation(args[1]);
-                            if(nation == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                                return;
-                            }
-
-                            for (Town town : nation.getTowns()){
-                                town.setMapColor(args[4]);
-                            }
-                            ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                        }
-                        case "name" ->{
-                            Nation nation = TownManager.getInstance().getNation(args[1]);
-                            if(nation == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                                return;
-                            }
-                            nation.setName(args[4]);
-                        }
-                    }
+            TownManager.getNation(args[1]) != null -> {
+                if (args.size < 4) {
+                    Messages.send(sender, "args")
+                    return
                 }
-                case "add" -> {
-                    Nation nation = TownManager.getInstance().getNation(args[1]);
-                    if(nation == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                        return;
-                    }
-                    Town town = TownManager.getInstance().getTown(args[3]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                        return;
-                    }
-                    if(town.getNation() != null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townhasnation(player));
-                        return;
-                    }
-
-                    TownyUtil.addTownInNation(town,nation);
-                    ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                }
-                case "delete" -> {
-                    Nation nation = TownManager.getInstance().getNation(args[1]);
-                    if(nation == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                        return;
-                    }
-                    TownyUtil.deleteNation(nation);
-                    ChatUtil.sendSuccessNotification(player,Messages.nationdel(player));
-                }
-                case "deposit" ->{
-                    ChatUtil.sendSuccessNotification(player,Messages.error(player));
-                }
-                case "withdraw" -> {
-                    ChatUtil.sendSuccessNotification(player,Messages.error(player));
-                }
-                case "kick" -> {
-                    Nation nation = TownManager.getInstance().getNation(args[1]);
-                    if(nation == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.nationexist(player));
-                        return;
-                    }
-                    Town town = TownManager.getInstance().getTown(args[3]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                        return;
-                    }
-                    if(nation.getCapital() != town) {
-                        TownyUtil.removeTownInNation(town);
-                    }
-                    ChatUtil.sendSuccessNotification(player,Messages.kicktownSuccess(player));
-                }
-                case "ranksettings" -> ChatUtil.sendSuccessNotification(player,Messages.error(player));
-
-                case "toggle" -> ChatUtil.sendSuccessNotification(player,Messages.error(player));
-            }
-
-        }else {
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-        }
-    }
-    public void newday(Player player){
-        ZoneId zoneId = ZoneId.of("Europe/Moscow");
-        LocalDateTime now = LocalDateTime.now(zoneId);
-        int year = now.getYear();
-        int month = now.getMonthValue();
-        int dayOfMonth = now.getDayOfMonth();
-        String dayOfWeek = now.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
-
-        BukkitUtils.fireEvent(new NewDayEvent(dayOfWeek, year, month, dayOfMonth));
-        ChatUtil.sendSuccessNotification(player,"New day");
-    }
-    public void resetbanks(String[] args,Player player){
-
-    }
-    public void town(String[] args,Player player){
-        if(args.length < 2){
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
-            return;
-        }
-        if(args[1].equalsIgnoreCase("new") || args[1].equalsIgnoreCase("create")){
-            TownyUtil.createTown(args[2],UUID.randomUUID(),null,null,null);
-        } else if(TownManager.getInstance().getTown(args[1]) != null){
-            if(args.length < 3){
-                ChatUtil.sendSuccessNotification(player,Messages.args(player));
-                return;
-            }
-            switch (args[2]){
-                case "set" -> {
-                    switch (args[3]){
-                        case "mayor" -> {
-                            Town town = TownManager.getInstance().getTown(args[1]);
-                            if(town == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                                return;
-                            }
-                            Resident resident = TownManager.getInstance().getResident(args[4]);
-                            if(resident == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.playererror(player));
-                                return;
-                            }
-                            if(resident.getTown() != town){
-                                ChatUtil.sendSuccessNotification(player,Messages.playernottown(player));
-                                return;
-                            }
-                            if(resident.getTown().getMayor() != null) {
-                                TownyUtil.removeResidentInTown(resident);
-                                TownyUtil.addResidentInTown(resident,town);
-                            }
-                            TownyUtil.setMayor(resident);
-                            ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                        }
-                        case "mapcolor" -> {
-                            Town town = TownManager.getInstance().getTown(args[1]);
-                            if(town == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                                return;
-                            }
-                            town.setMapColor(args[4]);
-                            ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                        }
-                        case "name" ->{
-                            Town town = TownManager.getInstance().getTown(args[1]);
-                            if(town == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                                return;
-                            }
-                            town.setName(args[4]);
-                        }
-                        case "homeblock" -> {
-                            Town town = TownManager.getInstance().getTown(args[1]);
-                            Chunk chunk = player.getChunk();
-                            if (town.getTownBlocks().keySet().stream().noneMatch(coord -> coord.getX() == chunk.getX() && coord.getZ() == chunk.getZ())) {
-                                ChatUtil.sendSuccessNotification(player, Messages.chunkerror(player));
-                                return;
-                            }
-
-                            if(TownManager.getInstance().getTownByChunk(chunk) == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.chunkerror(player));
-                                return;
-                            }
-                            town.setHomeblock(new HomeBlock(chunk.getX(),chunk.getZ(),chunk.getWorld()));
-                        }
-                        case "spawn" -> {
-                            Town town = TownManager.getInstance().getTown(args[1]);
-                            Chunk chunk = player.getChunk();
-                            if (town.getTownBlocks().keySet().stream().noneMatch(coord -> coord.getX() == chunk.getX() && coord.getZ() == chunk.getZ())) {
-                                ChatUtil.sendSuccessNotification(player, Messages.chunkerror(player));
-                                return;
-                            }
-                            if(TownManager.getInstance().getTownByChunk(chunk) == null){
-                                ChatUtil.sendSuccessNotification(player,Messages.chunkerror(player));
-                                return;
-                            }
-                            town.setSpawnLocation(player.getLocation());
-                        }
-                    }
-                }
-                case "add" -> {
-                    Town town = TownManager.getInstance().getTown(args[1]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                        return;
-                    }
-                    Resident resident = TownManager.getInstance().getResident(args[3]);
-                    if(resident == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.playererror(player));
-                        return;
-                    }
-                    if(resident.getTown() == town){
-                        ChatUtil.sendSuccessNotification(player,Messages.alrinvitetown(player));
-                        return;
-                    }
-                    if(resident.getTown() != null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townalrexist(player));
-                        return;
-                    }
-                    TownyUtil.addResidentInTown(resident,town);
-                    if(town.hasNation()){
-                        TownyUtil.addResidentInNation(resident,town.getNation());
-                    }
-                    ChatUtil.sendSuccessNotification(player,Messages.suc(player));
-                }
-                case "delete" -> {
-                    Town town = TownManager.getInstance().getTown(args[1]);
-                    TownyUtil.deleteTown(town);
-                }
-                case "deposit" ->{
-                    ChatUtil.sendSuccessNotification(player,Messages.error(player));
-                }
-                case "withdraw" -> {
-                    ChatUtil.sendSuccessNotification(player,Messages.error(player));
-                }
-                case "forcemerge" -> {
-                    if(args.length < 4){
-                        ChatUtil.sendSuccessNotification(player, Messages.args(player));
-                        return;
-                    }
-
-                    // Получаем первый город
-                    Town town = TownManager.getInstance().getTown(args[1]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player, Messages.townexist(player));
-                        return;
-                    }
-
-                    // Получаем второй город для слияния
-                    Town addTown = TownManager.getInstance().getTown(args[3]);
-                    if(addTown == null){
-                        ChatUtil.sendSuccessNotification(player, Messages.townexist(player));
-                        return;
-                    }
-
-                    // Синхронизация для предотвращения ошибок с потоками
-                    synchronized (town) {
-                        synchronized (addTown) {
-                            // Очистка мэра второго города
-                            if(addTown.getMayor() != null){
-                                addTown.getMayor().clear();
-                            }
-
-                            // Перенос всех резидентов из второго города в первый
-                            for (Resident resident : addTown.getResidents()) {
-                                TownyUtil.removeResidentInTown(resident);
-                                TownyUtil.addResidentInTown(resident, town);
-                            }
-
-                            // Перенос всех TownBlocks из второго города в первый
-                            for (TownBlocks tb : addTown.getTownBlocks().values()) {
-                                tb.setTown(town);
-                                town.addClaimedChunk(tb);
-                            }
-
-                            // Очистка TownBlocks второго города
-                            addTown.getTownBlocks().clear();
-                        }
-                    }
-                    TownyUtil.deleteTown(addTown);
-                    // Уведомление об успешном слиянии
-                    ChatUtil.sendSuccessNotification(player, Messages.suc(player));
-                }
-
-                case "kick" -> {
-                    Town town = TownManager.getInstance().getTown(args[1]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                        return;
-                    }
-                    Resident resident = TownManager.getInstance().getResident(args[3]);
-                    if(resident == null){
-                        ChatUtil.sendSuccessNotification(player, Messages.playererror(player));
-                        return;
-                    }
-                    if(resident.isMayor()){
-                        ChatUtil.sendSuccessNotification(player,Messages.notkickmayor(player));
-                        return;
-                    }
-                    if(resident.hasTown()) {
-                        TownyUtil.removeResidentInTown(resident);
-                        ChatUtil.sendSuccessNotification(player, Messages.kicksuc(player));
-                    }else {
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                    }
-                }
-                case "ranksettings" -> ChatUtil.sendSuccessNotification(player,Messages.error(player));
-                case "spawn" ->{
-                    Town town = TownManager.getInstance().getTown(args[1]);
-                    if(town == null){
-                        ChatUtil.sendSuccessNotification(player,Messages.townexist(player));
-                        return;
-                    }
-                    player.teleport(town.getSpawnLocation());
-                }
-                case "toggle" -> {
-                    ChatUtil.sendSuccessNotification(player,Messages.error(player));
+                when (args[2]) {
+                    "set" -> handleNationSet(args, sender)
+                    "add" -> handleNationAdd(args, sender)
+                    "delete" -> handleNationDelete(args, sender)
+                    "kick" -> handleNationKick(args, sender)
+                    else -> Messages.send(sender, "args")
                 }
             }
-
-        }else {
-            ChatUtil.sendSuccessNotification(player,Messages.args(player));
+            else -> Messages.send(sender, "args")
         }
     }
 
-    public void reload (String[] args,Player player){
-        Core.getInstance().reloadConfig();
-        TranslateYML.getCachedConfigurations().clear();
-        new TranslateYML();
+    private fun handleNationSet(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 5) {
+            Messages.send(sender, "args")
+            return
+        }
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такой нации не существует")
+            return
+        }
+
+        when (args[3]) {
+            "capital" -> setNationCapital(args, sender, nation)
+            "king" -> setNationKing(args, sender, nation)
+            "mapcolor" -> {
+                nation.mapColor = args[4]
+                Messages.send(sender, "success")
+            }
+            "fullmapcolor" -> {
+                for (town in nation.towns) {
+                    town.mapColor = args[4]
+                }
+                Messages.send(sender, "success")
+            }
+            "name" -> {
+                nation.name = args[4]
+                Messages.send(sender, "success")
+            }
+        }
     }
 
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
-        Player player = (Player) sender;
-        Resident resident = TownManager.getInstance().getResident(player);
+    private fun setNationCapital(args: Array<out String>, sender: CommandSender, nation: Nation) {
+        val town = TownManager.getTown(args[4]) ?: run {
+            Messages.send(sender, "Такой нации не существует")
+            return
+        }
+        if (town.nation != nation) {
+            Messages.send(sender, "Город не состоит в нации")
+            return
+        }
+        nation.capital = town
+        Messages.send(sender, "success")
+    }
 
-        if (args.length == 1) {
-            List<String> commands = new ArrayList<>(List.of("nation","newday","reload","resetbanks","town","map","fill"));
-            return Core.getPartialMatches(args[0], commands);
+    private fun setNationKing(args: Array<out String>, sender: CommandSender, nation: Nation) {
+        val resident = TownManager.getResident(args[4]) ?: run {
+            Messages.send(sender,"Не существует такого игрока")
+            return
+        }
+        if (resident.nation != nation) {
+            Messages.send(sender, "Игрок состоит в другой нации")
+            return
+        }
+        nation.capital?.mayor?.assignNationRank(null)
+        TownyUtil.setKing(resident)
+        Messages.send(sender, "success")
+    }
+
+    private fun handleNationAdd(args: Array<out String>, sender: CommandSender) {
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такой нации не существует")
+            return
+        }
+        val town = TownManager.getTown(args[3]) ?: run {
+            Messages.send(sender,"Такого города не существует")
+            return
+        }
+        if (town.nation != null) {
+            Messages.send(sender, "У города уже есть нация")
+            return
+        }
+        TownyUtil.addTownInNation(town, nation)
+        Messages.send(sender, "success")
+    }
+
+    private fun handleNationDelete(args: Array<out String>, sender: CommandSender) {
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такой нации не существует")
+            return
+        }
+        TownyUtil.deleteNation(nation)
+        Messages.send(sender, "success")
+    }
+
+    private fun handleNationKick(args: Array<out String>, sender: CommandSender) {
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такой нации не существует")
+            return
+        }
+        val town = TownManager.getTown(args[3]) ?: run {
+            Messages.send(sender,"Такого города не существует")
+            return
+        }
+        if (town != nation.capital) {
+            TownyUtil.removeTownInNation(town)
+            Messages.send(sender,"Успешно изгнали")
+        } else {
+            Messages.send(sender,"Нельзя выгнать столицу.")
+        }
+    }
+
+    private fun newDay(sender: CommandSender) {
+        val zoneId = ZoneId.of("Europe/Moscow")
+        val now = LocalDateTime.now(zoneId)
+        val year = now.year
+        val month = now.monthValue
+        val dayOfMonth = now.dayOfMonth
+        val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase()
+
+        BukkitUtils.fireEvent(NewDayEvent(dayOfWeek, year, month, dayOfMonth))
+        for (player in Bukkit.getOnlinePlayers()) {
+            Messages.send(player, "broadcast.newday")
+        }
+    }
+
+    private fun resetBanks(args: Array<out String>, sender: CommandSender) {
+        // Реализация сброса банков может быть добавлена здесь
+    }
+
+    private fun town(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 2) {
+            Messages.send(sender, "args")
+            return
         }
 
-        if (args.length == 2) {
-            if(args[0].equalsIgnoreCase("town")){
-                List<String> towns = new ArrayList<>(TownManager.getInstance().getTownNames());
-                towns.add("create");
-                towns.add("new");
-                return Core.getPartialMatches(args[1],towns);
+        when {
+            args[1].equals("new", ignoreCase = true) || args[1].equals("create", ignoreCase = true) -> {
+                TownyUtil.createTown(args[2], UUID.randomUUID(), null, null, null)
+                Messages.send(sender, "Город ${args[2]} успешно создан.")
             }
-            else if(args[0].equalsIgnoreCase("nation")){
-                List<String> nations = new ArrayList<>(TownManager.getInstance().getNationNames());
-                nations.add("create");
-                nations.add("new");
-                return Core.getPartialMatches(args[1],nations);
-            }
-        }
-
-        if (args.length == 3) {
-            if(args[0].equalsIgnoreCase("nation") && (TownManager.getInstance().getNation(args[1]) != null)){
-                return Core.getPartialMatches(args[2],List.of("add","delete","deposit","kick","ranksettings","set","withdraw","toggle","fillcolor"));
-            }
-            if(args[0].equalsIgnoreCase("town") && (TownManager.getInstance().getTown(args[1]) != null)){
-                return Core.getPartialMatches(args[2],List.of("add","delete","deposit","kick","ranksettings","set","spawn","withdraw","toggle","forcemerge"));
-            }
-        }
-
-        if (args.length == 4) {
-            if(args[0].equalsIgnoreCase("nation") && (TownManager.getInstance().getNation(args[1]) != null)) {
-                if(args[2].equalsIgnoreCase("set")) {
-                    return Core.getPartialMatches(args[3], List.of("capital", "king", "mapcolor", "name","fullmapcolor"));
-                }else if(args[2].equalsIgnoreCase("kick")){
-                    return Core.getPartialMatches(args[3],TownManager.getInstance().getNation(args[1]).getTowns().stream().map(Town::getName).toList());
-                }else if(args[2].equalsIgnoreCase("add")){
-                    return Core.getPartialMatches(args[0],TownManager.getInstance().getTownNames());
+            TownManager.getTown(args[1]) != null -> {
+                if (args.size < 3) {
+                    Messages.send(sender, "args")
+                    return
                 }
-            }else if(args[0].equalsIgnoreCase("town") && (TownManager.getInstance().getTown(args[1]) != null)) {
-                if ((args[2].equalsIgnoreCase("set"))) {
-                    return Core.getPartialMatches(args[3], List.of("homeblock", "mayor", "mapcolor", "name", "spawn"));
-                }else if(args[2].equalsIgnoreCase("kick")){
-                    return Core.getPartialMatches(args[3],TownManager.getInstance().getTown(args[1]).getResidents().stream().map(Resident::getPlayerName).toList());
-                }else if(args[2].equalsIgnoreCase("add")){
-                    return Core.getPartialMatches(args[3],TownManager.getInstance().getResidentNames());
+                when (args[2]) {
+                    "set" -> handleTownSet(args, sender)
+                    "add" -> handleTownAdd(args, sender)
+                    "delete" -> handleTownDelete(args, sender)
+                    "spawn" -> handleTownSpawn(args, sender)
+                    else -> Messages.send(sender, "args")
                 }
             }
+            else -> Messages.send(sender, "args")
         }
-        if(args.length == 5){
-            if(args[0].equalsIgnoreCase("town") && (TownManager.getInstance().getTown(args[1]) != null) && args[2].equalsIgnoreCase("set") && args[3].equalsIgnoreCase("mayor")){
-                return Core.getPartialMatches(args[4],TownManager.getInstance().getTown(args[1]).getResidents().stream().map(Resident::getPlayerName).toList());
-            }
-            if(args[0].equalsIgnoreCase("nation") && (TownManager.getInstance().getNation(args[1]) != null) && args[2].equalsIgnoreCase("set") && args[3].equalsIgnoreCase("capital")){
-                return Core.getPartialMatches(args[4],TownManager.getInstance().getNation(args[1]).getTowns().stream().map(Town::getName).toList());
-            }
+    }
+
+    private fun handleTownSet(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 4) {
+            Messages.send(sender, "args")
+            return
         }
-        return new ArrayList<>();
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+
+        when (args[3]) {
+            "mayor" -> setTownMayor(args, sender, town)
+            "mapcolor" -> {
+                town.mapColor = args[4]
+                Messages.send(sender, "success")
+            }
+            "name" -> {
+                town.name = args[4]
+                Messages.send(sender, "success")
+            }
+            "homeblock" -> setTownHomeBlock(args, sender, town)
+        }
+    }
+
+    private fun setTownMayor(args: Array<out String>, sender: CommandSender, town: Town) {
+        val resident = TownManager.getResident(args[4]) ?: run {
+            Messages.send(sender, "Такого игрока не существует")
+            return
+        }
+        if (resident.town != town) {
+            Messages.send(sender, "У игрок нет города")
+            return
+        }
+        TownyUtil.setMayor(resident)
+        Messages.send(sender, "success")
+    }
+
+    private fun setTownHomeBlock(args: Array<out String>, sender: CommandSender, town: Town) {
+        val chunk = (sender as? Player)?.chunk ?: run {
+            Messages.send(sender, "message_console")
+            return
+        }
+        if (!town.townBlocks.keys.any { it.x == chunk.x && it.z == chunk.z }) {
+            Messages.send(sender, "Этот чанк не принадлежит городу")
+            return
+        }
+        town.homeBlock = HomeBlock(chunk.x, chunk.z, chunk.world)
+        Messages.send(sender, "success")
+    }
+
+    private fun handleTownAdd(args: Array<out String>, sender: CommandSender) {
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        val resident = TownManager.getResident(args[3]) ?: run {
+            Messages.send(sender, "Такого игрока не существует")
+            return
+        }
+        if (resident.town == town) {
+            Messages.send(sender, "Игрок уже принадлежит этому городу")
+            return
+        }
+        if (resident.town != null) {
+            Messages.send(sender, "Уже есть город у него")
+            return
+        }
+        TownyUtil.addResidentInTown(resident, town)
+        if (town.hasNation) {
+            TownyUtil.addResidentInNation(resident, town.nation)
+        }
+        Messages.send(sender, "success")
+    }
+
+    private fun handleTownDelete(args: Array<out String>, sender: CommandSender) {
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        TownyUtil.deleteTown(town)
+        Messages.send(sender, "success")
+    }
+
+    private fun handleTownSpawn(args: Array<out String>, sender: CommandSender) {
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        (sender as? Player)?.teleport(town.spawnLocation ?: return)
+        Messages.send(sender, "Вы телепортированы в спавн города ${town.name}.")
+    }
+
+    private fun reload(args: Array<out String>, sender: CommandSender) {
+        AstraTowny.instance.reloadConfig()
+        TranslateYML.reload()
+        Messages.send(sender, "Конфигурация перезагружена.")
+    }
+
+    override fun onTabComplete(
+        sender: CommandSender,
+        command: Command,
+        label: String,
+        args: Array<String>
+    ): List<String>? {
+        return when (args.size) {
+            1 -> {
+                val commands = listOf("nation", "newday", "reload", "resetbanks", "town", "map", "fill")
+                getPartialMatches(args[0], commands)
+            }
+            2 -> {
+                when (args[0].lowercase()) {
+                    "town" -> {
+                        val towns = TownManager.getTownNames().toMutableList()
+                        towns.addAll(listOf("create", "new"))
+                        getPartialMatches(args[1], towns)
+                    }
+                    "nation" -> {
+                        val nations = TownManager.getNationNames().toMutableList()
+                        nations.addAll(listOf("create", "new"))
+                        getPartialMatches(args[1], nations)
+                    }
+                    else -> emptyList()
+                }
+            }
+            3 -> {
+                when {
+                    args[0].equals("nation", ignoreCase = true) && TownManager.getNation(args[1]) != null -> {
+                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "ranksettings", "set", "withdraw", "toggle", "fillcolor"))
+                    }
+                    args[0].equals("town", ignoreCase = true) && TownManager.getTown(args[1]) != null -> {
+                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "ranksettings", "set", "spawn", "withdraw", "toggle", "forcemerge"))
+                    }
+                    else -> emptyList()
+                }
+            }
+            4 -> {
+                when {
+                    args[0].equals("nation", ignoreCase = true) && TownManager.getNation(args[1]) != null -> {
+                        when (args[2].lowercase()) {
+                            "set" -> getPartialMatches(args[3], listOf("capital", "king", "mapcolor", "name", "fullmapcolor"))
+                            "kick" -> TownManager.getNation(args[1])?.towns?.map { it.name }
+                                ?.let { getPartialMatches(args[3], it) }
+                            "add" -> getPartialMatches(args[3], TownManager.getTownNames())
+                            else -> emptyList()
+                        }
+                    }
+                    args[0].equals("town", ignoreCase = true) && TownManager.getTown(args[1]) != null -> {
+                        when (args[2].lowercase()) {
+                            "set" -> getPartialMatches(args[3], listOf("homeblock", "mayor", "mapcolor", "name", "spawn"))
+                            "kick" -> TownManager.getTown(args[1])?.residents?.map { it.playerName }
+                                ?.let { getPartialMatches(args[3], it) }
+                            "add" -> getPartialMatches(args[3], TownManager.getResidentNames())
+                            else -> emptyList()
+                        }
+                    }
+                    else -> emptyList()
+                }
+            }
+            5 -> {
+                when {
+                    args[0].equals("town", ignoreCase = true) && TownManager.getTown(args[1]) != null && args[2].equals("set", ignoreCase = true) && args[3].equals("mayor", ignoreCase = true) -> {
+                        TownManager.getTown(args[1])?.residents?.map { it.playerName }
+                            ?.let { getPartialMatches(args[4], it) }
+                    }
+                    args[0].equals("nation", ignoreCase = true) && TownManager.getNation(args[1]) != null && args[2].equals("set", ignoreCase = true) && args[3].equals("capital", ignoreCase = true) -> {
+                        TownManager.getNation(args[1])?.towns?.map { it.name }?.let { getPartialMatches(args[4], it) }
+                    }
+                    else -> emptyList()
+                }
+            }
+            else -> emptyList()
+        }
+    }
+
+    private fun getPartialMatches(arg: String, options: List<String>): List<String> {
+        return options.filter { it.startsWith(arg) }
     }
 }

@@ -1,5 +1,7 @@
 package dev.loveeev.astratowny.utils
 
+import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.astratowny.chat.Messages
 import dev.loveeev.astratowny.database.SQL
 import dev.loveeev.astratowny.database.SchemeSQL
 import dev.loveeev.astratowny.events.nation.NationCreateEvent
@@ -23,6 +25,7 @@ import dev.loveeev.astratowny.events.town.TownDeleteEvent
 import dev.loveeev.astratowny.events.townblocks.TownBlockCreateEvent
 import dev.loveeev.astratowny.events.townblocks.TownBlockDeleteEvent
 import dev.loveeev.astratowny.objects.townblocks.HomeBlock
+import dev.loveeev.astratowny.response.NoPermissionException
 import dev.loveeev.astratowny.response.Status
 import org.bukkit.Location
 import org.bukkit.World
@@ -68,6 +71,23 @@ object TownyUtil {
             throw TownyException("Failed to delete town block from database.", e)
         }
     }
+
+    fun insertTownBlockInDataBase(tb: TownBlock?): TownyResponse {
+        tb ?: return TownyResponse.failure("TownBlock cannot be null.")
+        return try {
+            SQL.executeUpdateAsync(
+                "INSERT INTO ${SchemeSQL.tablePrefix}TOWNBLOCKS (WORLD, X, Z, TOWN) VALUES (?, ?, ?, ?)",
+                tb.world.name,
+                tb.x,
+                tb.z,
+                tb.town.name
+            )
+            TownyResponse.success("TownBlock inserted successfully.")
+        } catch (e: Exception) {
+            throw TownyException("Failed to insert town block into database.", e)
+        }
+    }
+
 
     /**
      * Deletes a nation from the database.
@@ -159,10 +179,12 @@ object TownyUtil {
                     this.residents.add(it)
                     it.town = this
                     val response = setMayor(it)
-                    this.mayor = it
                     if (!response.isSuccess) {
                         BukkitUtils.logToConsole(response.message)
+                        return TownyResponse.failure("Dont have rank town.")
                     }
+                    this.mayor = it
+
                 } ?: BukkitUtils.logToConsole("Created town without a mayor.")
             }
             addTownBlockToTown(town, TownBlock(homeBlock!!.x, homeBlock.z, town, homeBlock.world))
@@ -208,6 +230,7 @@ object TownyUtil {
                     val response = setKing(it)
                     if (!response.isSuccess) {
                         BukkitUtils.logToConsole(response.message)
+                        return TownyResponse.failure("Dont have rank nation.")
                     }
                 }
             }
@@ -252,6 +275,11 @@ object TownyUtil {
                 TownManager.townBlocks[WorldCoord(world, x, z)] = tb
             }
 
+            synchronizedMap(town.townBlocks) {
+                town.townBlocks[WorldCoord.parseWorldCoord(tb)] = tb
+            }
+            insertTownBlockInDataBase(tb)
+
             TownyResponse.success("Town block created successfully.")
         } catch (e: Exception) {
             throw TownyException("Failed to create town block.", e)
@@ -278,13 +306,13 @@ object TownyUtil {
                 BukkitUtils.logToConsole(test.message)
                 return TownyResponse.failure("Resident failed save into DataBase")
             }
-            if (resident.isKing) {
+            if (resident.isKing()) {
                 val response = deleteNation(resident.nation!!)
                 if (!response.isSuccess) {
                     BukkitUtils.logToConsole(response.message)
                 }
             }
-            if (resident.isMayor) {
+            if (resident.isMayor()) {
                 val response = deleteTown(resident.town!!)
                 if (!response.isSuccess) {
                     BukkitUtils.logToConsole(response.message)
@@ -581,7 +609,7 @@ object TownyUtil {
                 return TownyResponse.failure("Resident doesn't belong to any nation.")
             }
 
-            if (resident.isKing) {
+            if (resident.isKing()) {
                 deleteNation(resident.nation!!)
             }
 
@@ -614,14 +642,14 @@ object TownyUtil {
             }
 
 
-            if (resident.isMayor) {
+            if (resident.isMayor()) {
                 if (resident == resident.town?.mayor) {
                     resident.town?.mayor = null
                 }
             }
 
             if (resident.hasNation) {
-                if (resident.isKing) {
+                if (resident.isKing()) {
                     return TownyResponse.failure("Resident is king.")
                 }
 
@@ -718,49 +746,66 @@ object TownyUtil {
     }
 
     fun setMayor(it: Resident): TownyResponse {
+        if(it.town != null) {
+            if(it.town!!.mayor != null) {
+                it.town!!.mayor?.townRank = null
+            }
+            it.assignTownRank(TownManager.townRanks["mayor"] ?: return TownyResponse.failure("Dont have rank town."))
+        }
         return TownyResponse(Status.SUCCESS, "SET MAYOR SUCCESS")
     }
 
     fun setKing(it: Resident): TownyResponse {
+        if(it.nation != null) {
+            if(it.nation!!.capital?.mayor != null) {
+                it.nation!!.capital?.mayor?.nationRank = null
+            }
+            it.assignNationRank(TownManager.nationRanks["king"] ?: return TownyResponse.failure("Dont have rank nation."))
+        }
         return TownyResponse(Status.SUCCESS, "SET KING SUCCESS")
     }
 
     fun checkPermission(resident: Resident, s: String) {
+        println(resident.townRank?.name ?: "нету")
+        println(resident.nationRank?.name ?: "нету")
+        if (AstraTowny.defaultPermission.contains(s)) {
+            println("test")
+            return
+        }
 
+        if (resident.hasPermission(s)){
+            println("test1")
+            return
+        }
+        println("penis")
+        Messages.send(resident.getPlayer(), "permission")
+        throw NoPermissionException(s)
     }
 
     fun addTownBlockToTown(town: Town, townBlock: TownBlock) {
         val coord = WorldCoord.parseTownBlocksCoord(townBlock)
+        val existingBlock = TownManager.townBlocks[coord]
 
-        // Проверяем, принадлежит ли чанк уже другому городу
-        if (townBlock.town != town) {
-            val existingBlock = TownManager.townBlocks[coord]
-
-            // Если чанк уже есть в TownManager, удаляем его перед повторным добавлением
-            if (existingBlock != null) {
-                TownManager.townBlocks.remove(coord)
-                existingBlock.town.townBlocks?.remove(coord)
+        if (existingBlock == null) {
+            val response = createTownBlock(townBlock.world, town, townBlock.x, townBlock.z)
+            if (!response.isSuccess) {
+                BukkitUtils.logToConsole("Не удалось создать TownBlock: ${response.message}")
             }
-
-            // Создаём новый TownBlock и добавляем его в менеджер
-            val newTownBlock = TownBlock(townBlock.x, townBlock.z, town, townBlock.world)
-            TownManager.townBlocks[coord] = newTownBlock
-
-            // Добавляем в город, если его там нет
-            if (!town.townBlocks.containsKey(coord)) {
-                town.addClaimedChunk(newTownBlock)
-            }
+            return
         }
-        if(townBlock.town == town) {
-            val existingBlock = TownManager.townBlocks[coord]
 
-            if (existingBlock == null) {
-                TownManager.townBlocks[coord] = townBlock
-            }
-            if (!town.townBlocks.containsKey(coord)) {
-                town.addClaimedChunk(townBlock)
-            }
+        if (existingBlock.town != town) {
+            existingBlock.town.townBlocks.remove(coord)
+            val newBlock = TownBlock(townBlock.x, townBlock.z, town, townBlock.world)
+            TownManager.townBlocks[coord] = newBlock
+            town.addClaimedChunk(newBlock)
+            return
+        }
+
+        if (!town.townBlocks.containsKey(coord)) {
+            town.addClaimedChunk(existingBlock)
         }
     }
+
 
 }

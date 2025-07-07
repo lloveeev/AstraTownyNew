@@ -34,6 +34,9 @@ object TranslateYML {
         val lang = getPlayerLanguage(player)
         return translations[lang]?.getString(key) ?: translations["en"]?.getString(key) ?: key
     }
+    fun getTranslation( key: String): String {
+        return translations["en"]?.getString(key) ?: key
+    }
 
     fun getTranslationList(player: Player, key: String): List<String> {
         val lang = getPlayerLanguage(player)

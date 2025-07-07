@@ -1,6 +1,7 @@
 package dev.loveeev.astratowny.timers
 
 import dev.loveeev.astratowny.AstraTowny
+import dev.loveeev.utils.BukkitUtils
 import org.bukkit.Bukkit
 import org.bukkit.scheduler.BukkitRunnable
 import java.time.LocalDateTime
@@ -35,7 +36,7 @@ class TimeChecker : BukkitRunnable() {
         val dayOfWeek = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase(Locale.getDefault())
 
         val event = NewDayEvent(dayOfWeek, year, month, dayOfMonth)
-        Bukkit.getServer().pluginManager.callEvent(event)
+        BukkitUtils.fireEvent(event)
     }
 
     private fun callNewHourEvent(now: LocalDateTime) {
@@ -45,6 +46,6 @@ class TimeChecker : BukkitRunnable() {
         val hour = now.hour
 
         val event = NewHourEvent(year, month, dayOfWeek, hour)
-        Bukkit.getServer().pluginManager.callEvent(event)
+        BukkitUtils.fireEvent(event)
     }
 }

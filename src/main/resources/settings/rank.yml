@@ -1,0 +1,13 @@
+townRanks:
+  mayor:
+    - ASTRATOWN_TOWN_CLAIM
+    - ASTRATOWN_TOWN_UNCLAIM
+  assistant:
+    - ASTRATOWN_TOWN_CLAIM
+    - ASTRATOWN_TOWN_UNCLAIM
+
+nationRanks:
+  king:
+    - ASTRATOWN_NATION_DELETE
+  assistant:
+    - ASTRATOWN_NATION_DELETE

@@ -8,6 +8,7 @@ error: "Ошибка"
 permission: "У вас недостаточно прав для использования данной команды."
 money_error: "У вас недостаточно золота."
 player_error: "Такого игрока не существует."
+town_error: "Такого города не существует"
 player_offline: "Игрок с таким никнеймом не в сети."
 args: "Недостаточно аргументов"
 
@@ -66,6 +67,28 @@ town:
     success: "Вы успешно установили флаг."
     error: "Вы неверно указали true/false"
     args: "Используйте /t toggle PERMTYPE true/false"
+
+rank:
+  give:
+    command: "Используйте /t rank give <название> <игрок> или /n rank give <название> <игрок>"
+    success: "Ранг {rankName} был назначен игроку {player}."
+    error: "Не удалось назначить ранг. Проверьте правильность команды."
+    no_permission: "У вас нет прав для назначения этого ранга."
+    rank_not_found: "Ранг {rankName} не найден."
+    player_not_found: "Игрок с ником {player} не найден."
+  remove:
+    command: "Используйте /rank remove <тип> <рейтинг>"
+    success: "Ранг {rankName} был удален у игрока {player}."
+    error: "Не удалось удалить ранг. Проверьте правильность команды."
+    no_rank: "У игрока {player} нет этого ранга."
+    rank_not_found: "Ранг {rankName} не найден."
+  list:
+    command: "Используйте /rank list <тип>"
+    town_ranks: "Доступные городские ранги: {townRanks}"
+    nation_ranks: "Доступные национальные ранги: {nationRanks}"
+    error: "Не удалось получить список рангов. Проверьте правильность команды."
+    no_ranks: "Нет доступных рангов для этого типа."
+
 # Сообщения для нации
 nation:
   create:
