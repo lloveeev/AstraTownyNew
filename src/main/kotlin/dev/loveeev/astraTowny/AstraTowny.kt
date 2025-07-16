@@ -1,12 +1,11 @@
 package dev.loveeev.astratowny
 
-import dev.loveeev.astratowny.listeners.ResidentEvent
 import dev.loveeev.astratowny.commands.LangCommand
 import dev.loveeev.astratowny.commands.ToggleClaimCommand
 import dev.loveeev.astratowny.commands.admin.TownyAdmin
 import dev.loveeev.astratowny.commands.main.NationCommand
+import dev.loveeev.astratowny.commands.main.PlotCommand
 import dev.loveeev.astratowny.commands.main.TownyCommand
-
 import dev.loveeev.astratowny.config.DatabaseYML
 import dev.loveeev.astratowny.config.TranslateYML
 import dev.loveeev.astratowny.data.load.Load
@@ -15,6 +14,7 @@ import dev.loveeev.astratowny.database.SQL
 import dev.loveeev.astratowny.database.SQL.closeConnection
 import dev.loveeev.astratowny.database.SchemeSQL
 import dev.loveeev.astratowny.hooks.PlaceholderHook
+import dev.loveeev.astratowny.listeners.ResidentEvent
 import dev.loveeev.astratowny.listeners.TownBlockFlags
 import dev.loveeev.astratowny.listeners.TownBlockInteract
 import dev.loveeev.astratowny.listeners.TownBlockMovePlayer
@@ -22,14 +22,16 @@ import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Rank
 import dev.loveeev.astratowny.timers.TimeChecker
 import dev.loveeev.astratowny.utils.map.MapHud.startScoreboardUpdates
+import dev.loveeev.utils.BukkitUtils
+import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
 import org.bukkit.command.TabExecutor
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.plugin.RegisteredServiceProvider
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.util.logging.Level
-import java.util.stream.Collectors
-import kotlin.math.log
+
 
 class AstraTowny : JavaPlugin() {
 
@@ -38,19 +40,33 @@ class AstraTowny : JavaPlugin() {
             private set
         lateinit var defaultPermission: List<String>
             private set
+        lateinit var economy: Economy
     }
 
     override fun onEnable() {
         instance = this
         defaultPermission = config.getStringList("nomad")
-        //Main loads
         loadConfig()
+
+        if (!setupEconomy()) {
+            logger.severe("Vault найден, но Economy-провайдер НЕ зарегистрирован после задержки!")
+            server.pluginManager.disablePlugin(this)
+            return
+        }
+
+        val debug = config.getBoolean("debug")
+        //Main loads
+
         registerCommands()
-        SQL
+        if(!debug) SQL
         hookRegister()
         loadListeners()
-        loadData()
-
+        if(!debug) loadData()
+        if(debug) {
+            for (i in 1..5) {
+                BukkitUtils.logToConsole("ENABLED DEBUG MODE, DATA NOT LOADED")
+            }
+        }
 
         startScoreboardUpdates()
     }
@@ -60,6 +76,29 @@ class AstraTowny : JavaPlugin() {
         logger.log(Level.INFO, "DATA SAVE SUCCESSFULLY")
         closeConnection()
     }
+
+    private fun setupEconomy(): Boolean {
+        val vault = server.pluginManager.getPlugin("Vault")
+        if (vault == null) {
+            logger.warning("Vault не найден!")
+            return false
+        }
+        logger.info("Vault найден.")
+
+        val rsp: RegisteredServiceProvider<Economy>? = server.servicesManager.getRegistration(Economy::class.java)
+        if (rsp == null) {
+            logger.warning("RegisteredServiceProvider<Economy> равен null!")
+            return false
+        }
+        economy = rsp.provider
+        if (economy == null) {
+            logger.warning("Economy провайдер равен null!")
+            return false
+        }
+        logger.info("Economy провайдер успешно получен: ${economy.javaClass.name}")
+        return true
+    }
+
 
     fun loadData() {
         val mils = System.currentTimeMillis()
@@ -78,16 +117,18 @@ class AstraTowny : JavaPlugin() {
         logger.info("START LOAD TOWNBLOCKS")
         load.loadTownBlocks()
         logger.info("TOWNBLOCKS LOAD SUCCESSFULLY")
+        load.loadPlots()
+        logger.info("PLOTS LOAD SUCCESSFULLY")
         logger.info("DATA LOAD SUCCESSFULLY")
         logger.info("DataBase loaded in ${System.currentTimeMillis() - mils} ms")
         logger.info("Loaded townBlocks: ${TownManager.townBlocks.size}")
-        logger.info(TownManager.getTown("penis")?.townBlocks.toString())
     }
 
     fun unloadData() {
         val mils = System.currentTimeMillis()
         logger.info("START UNLOADING DATA")
         val unload = UnLoad()
+        unload.unloadPlots()
         logger.info("TOWNBLOCKS UNLOAD SUCCESSFULLY")
         unload.unLoadResident()
         logger.info("RESIDENTS UNLOAD SUCCESSFULLY")
@@ -139,8 +180,8 @@ class AstraTowny : JavaPlugin() {
 
 
     private fun loadConfig() {
-        DatabaseYML
-        TranslateYML
+        DatabaseYML.getConfig()
+        TranslateYML.loadTranslations()
         saveResource("settings/database.yml", false)
         saveResource("settings/rank.yml", false)
         saveDefaultConfig()
@@ -171,14 +212,14 @@ class AstraTowny : JavaPlugin() {
         val townRanks = mutableMapOf<String, Rank>()
         val nationRanks = mutableMapOf<String, Rank>()
 
-        config.getConfigurationSection("townRanks")?.getKeys(false)?.forEach { rankName ->
+        config.getConfigurationSection("townRanks")?.getKeys(false)?.forEachIndexed { i, rankName ->
             val permissions = config.getStringList("townRanks.$rankName").toSet()
-            townRanks[rankName] = Rank(rankName, permissions)
+            townRanks[rankName] = Rank(rankName, permissions, i)
         }
 
-        config.getConfigurationSection("nationRanks")?.getKeys(false)?.forEach { rankName ->
+        config.getConfigurationSection("nationRanks")?.getKeys(false)?.forEachIndexed { i, rankName ->
             val permissions = config.getStringList("nationRanks.$rankName").toSet()
-            nationRanks[rankName] = Rank(rankName, permissions)
+            nationRanks[rankName] = Rank(rankName, permissions, i)
         }
 
         return Pair(townRanks, nationRanks)
@@ -189,6 +230,7 @@ class AstraTowny : JavaPlugin() {
         register("towny", TownyCommand())
         register("nation", NationCommand())
         register("townyadmin", TownyAdmin())
+        register("plot", PlotCommand())
     }
 
     fun register(name: String?, tabExecutor: TabExecutor?) {

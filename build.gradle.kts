@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     kotlin("jvm") version "2.1.20-RC2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -29,13 +31,11 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
     implementation("dev.loveeev:hikariLib:0.1.0")
-
     implementation("com.zaxxer:HikariCP:5.0.1")
-
     compileOnly("me.clip:placeholderapi:2.11.6")
     implementation("mysql:mysql-connector-java:8.0.33")
 }
@@ -57,4 +57,9 @@ tasks.processResources {
     filesMatching("plugin.yml") {
         expand(props)
     }
+}
+
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.compilerOptions {
+    freeCompilerArgs.set(listOf("-XXLanguage:+BreakContinueInInlineLambdas"))
 }

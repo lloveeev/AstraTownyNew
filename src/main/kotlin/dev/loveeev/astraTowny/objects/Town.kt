@@ -2,6 +2,7 @@ package dev.loveeev.astratowny.objects
 
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
 import dev.loveeev.astratowny.objects.townblocks.HomeBlock
+import dev.loveeev.astratowny.objects.townblocks.Plot
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
 import dev.loveeev.astratowny.utils.TownyUtil
 import org.bukkit.Location
@@ -25,7 +26,8 @@ data class Town(
     val residents: ObjectOpenHashSet<Resident> = ObjectOpenHashSet(),
     val invitations: ObjectOpenHashSet<String> = ObjectOpenHashSet(),
     val townBlocks: ConcurrentHashMap<WorldCoord, TownBlock> = ConcurrentHashMap(),
-    val flags: MutableMap<PermsType, Boolean> = EnumMap(PermsType::class.java)
+    val flags: MutableMap<PermsType, Boolean> = EnumMap(PermsType::class.java),
+    val plots: ConcurrentHashMap<TownBlock, Plot> = ConcurrentHashMap<TownBlock, Plot>()
 ) {
     val isCapital: Boolean get() = nation?.capital == this
     val hasNation: Boolean get() = nation != null
@@ -36,7 +38,7 @@ data class Town(
     override fun hashCode(): Int {
         var result = uuid.hashCode()
         result = 31 * result + name.hashCode()
-        result = 31 * result + (mayor?.hashCode() ?: 0) // Если mayor может быть null, используем безопасное обращение
+        result = 31 * result + (mayor?.hashCode() ?: 0)
         return result
     }
 
@@ -65,6 +67,8 @@ data class Town(
     fun getResident(playerName: String): Resident? {
         return residents.find { it.playerName == playerName }
     }
+
+    fun getPlot(name: String) = plots.values.find { it.name == name }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

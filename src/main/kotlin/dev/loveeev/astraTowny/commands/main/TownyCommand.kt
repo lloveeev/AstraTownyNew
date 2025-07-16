@@ -2,8 +2,10 @@ package dev.loveeev.astratowny.commands.main
 
 
 import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.commands.TownyLists
 import dev.loveeev.astratowny.commands.api.AstraCommandsAddonApi
 import dev.loveeev.astratowny.commands.api.BaseCommandType
+import dev.loveeev.astratowny.events.town.TownSpawnEvent
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
@@ -41,7 +43,7 @@ class TownyCommand : TabExecutor {
             if (!resident.hasTown) {
                 Messages.send(sender, "message_town_exist")
             } else {
-               sendTownInfo(resident.town!!, resident.getPlayer())
+               sendTownInfo(resident.town!!, resident.getPlayer() as Player)
             }
             return true
         }
@@ -61,6 +63,7 @@ class TownyCommand : TabExecutor {
                 "transfer" -> handleTransfer(resident,sender, args)
                 "toggle" -> flagControl(args, resident, sender)
                 "rank" -> handleTownRank(args, resident, sender)
+                "list" -> TownyLists().handleListCommand(sender, args)
                 else -> handleDefaultCommand(args, resident, sender)
             }
         } catch (e: Exception) {
@@ -95,8 +98,22 @@ class TownyCommand : TabExecutor {
                 }
                 val targetResident = TownManager.getResident(targetPlayer.uniqueId)
 
+                if (targetResident == resident) {
+                    Messages.send(sender, "rank.give.self")
+                    return
+                }
+
                 val rank = TownManager.townRanks[rankName]
                 if (rank != null) {
+                    if ((resident.townRank?.priority ?: 99) >= rank.priority) {
+                        Messages.send(sender, "permission")
+                        return
+                    }
+
+                    if ((targetResident?.townRank?.priority ?: 99) <= (resident.townRank?.priority ?: 99)) {
+                        Messages.send(sender, "rank.give.priority")
+                        return
+                    }
                     targetResident?.assignTownRank(rank)
                     Messages.send(sender, "rank.give.success")
                 } else {
@@ -105,12 +122,49 @@ class TownyCommand : TabExecutor {
             }
 
             "remove" -> {
+                if (args.size < 4) {
+                    Messages.send(sender, "rank.remove.error")
+                    return
+                }
+
                 TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_RANK_REMOVE")
-                if (resident.townRank?.name == rankName) {
-                    resident.townRank = null
+                TownyUtil.checkPermission(resident, "ASTRATOWN_TOWN_RANK_REMOVE_$rankName")
+
+                val targetPlayerName = args[3]
+                val targetPlayer = Bukkit.getPlayerExact(targetPlayerName)
+                if (targetPlayer == null) {
+                    Messages.send(sender, "rank.remove.player_not_found")
+                    return
+                }
+
+                val targetResident = TownManager.getResident(targetPlayer.uniqueId)
+
+                if (targetResident == resident) {
+                    Messages.send(sender, "rank.remove.self")
+                    return
+                }
+
+                val rank = TownManager.townRanks[rankName]
+                if (rank != null) {
+                    if ((resident.townRank?.priority ?: 99) >= rank.priority) {
+                        Messages.send(sender, "permission")
+                        return
+                    }
+
+                    if (targetResident?.townRank?.name != rank.name) {
+                        Messages.send(sender, "rank.remove.no_rank")
+                        return
+                    }
+
+                    if ((targetResident.townRank?.priority ?: 99) <= (resident.townRank?.priority ?: 99)) {
+                        Messages.send(sender, "rank.remove.priority")
+                        return
+                    }
+
+                    targetResident.townRank = null
                     Messages.send(sender, "rank.remove.success")
                 } else {
-                    Messages.send(sender, "rank.remove.no_rank")
+                    Messages.send(sender, "rank.remove.rank_not_found")
                 }
             }
 
@@ -133,6 +187,7 @@ class TownyCommand : TabExecutor {
         }
 
     }
+
     private fun sendTownInfo(town: Town, player: Player) {
         val info = listOf(
             PlaceholderAPI.setPlaceholders(player, "&#DDA840Информация о городе ${town.name}"),
@@ -149,7 +204,12 @@ class TownyCommand : TabExecutor {
             Messages.send(sender, "message_town_exist")
             return
         }
-        resident.town?.spawnLocation?.let { sender.teleport(it) }
+        val event = TownSpawnEvent(resident.town!!, resident)
+        BukkitUtils.fireEvent(event)
+        if (!event.isCancelled) {
+            resident.town?.spawnLocation?.let { sender.teleport(it) }
+        }
+
     }
 
 
@@ -547,7 +607,7 @@ class TownyCommand : TabExecutor {
 
         return when (args.size) {
             1 -> {
-                val commands = mutableListOf("create", "delete", "leave", "spawn", "accept", "invite", "claim", "unclaim", "set", "rank", "new", "kick", "transfer", "army")
+                val commands = mutableListOf("create", "delete", "leave", "spawn", "accept", "invite", "claim", "unclaim", "set", "rank", "new", "kick", "transfer", /*"army" */)
                 commands.addAll(TownManager.getTownNames())
                 getPartialMatches(args[0], commands)
             }
@@ -560,28 +620,30 @@ class TownyCommand : TabExecutor {
 
     private fun handleSecondArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when (args[0].lowercase()) {
-            "rank" -> getPartialMatches(args[1], listOf("give", "remove", "list"))
+            "rank" -> getPartialMatches(args[1], listOf("give", "add", "remove", "list"))
             "invite" -> getPartialMatches(args[1], Bukkit.getOnlinePlayers().map(Player::getName))
             "set" -> getPartialMatches(args[1], listOf("spawn", "homeblock", "mapcolor", "name", "mapcolorall"))
             "kick" -> if (resident.hasTown) getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
             "transfer" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
             "accept" -> getPartialMatches(args[1], resident.invitations)
-            "army" -> getPartialMatches(args[1], listOf("add", "remove"))
+            //"army" -> getPartialMatches(args[1], listOf("add", "remove"))
             else -> emptyList()
         }
     }
 
     private fun handleThirdArgCompletion(args: Array<out String>, resident: Resident): List<String> {
         return when {
-            args[1].lowercase() == "rank" -> getPartialMatches(args[1], TownManager.townRanks.keys().toList())
-            args[1].lowercase() in listOf("add", "remove") -> if (resident.hasTown) getPartialMatches(args[2], resident.town?.residents?.map(Resident::playerName)!!) else emptyList()
-            args[0].lowercase() == "army" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
+            args[0].lowercase() == "rank" && arrayListOf("add", "give", "remove").contains(args[1]) -> getPartialMatches(args[2], TownManager.townRanks.keys().toList())
+            //args[0].lowercase() == "army" -> getPartialMatches(args[1], resident.town?.residents?.map(Resident::playerName)!!)
             else -> emptyList()
         }
     }
 
     private fun handleFourthArgCompletion(args: Array<out String>, resident: Resident): List<String> {
-        return emptyList()
+        return when {
+            args[0] == "rank" && arrayListOf("add", "give", "remove").contains(args[1]) -> getPartialMatches(args[3], resident.town?.residents?.stream()?.map { resident -> resident.playerName }?.toList() ?: listOf())
+            else -> emptyList()
+        }
     }
 
     private fun getPartialMatches(arg: String, options: List<String>): List<String> {

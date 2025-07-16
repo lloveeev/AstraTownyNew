@@ -39,8 +39,11 @@ data class WorldCoord(
 
         fun parseWorldCoord(loc: Location): WorldCoord {
             val world = loc.world ?: throw IllegalArgumentException("Provided location does not have an associated world")
-            return WorldCoord(world, toCell(loc.blockX), toCell(loc.blockZ))
+            val chunkX = loc.blockX shr 4
+            val chunkZ = loc.blockZ shr 4
+            return WorldCoord(world, chunkX, chunkZ)
         }
+
 
         fun parseWorldCoord(homeBlock: HomeBlock): WorldCoord {
             val world = homeBlock.world

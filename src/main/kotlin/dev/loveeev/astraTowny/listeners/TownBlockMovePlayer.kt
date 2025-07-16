@@ -22,16 +22,14 @@ class TownBlockMovePlayer : Listener {
 
 
     @EventHandler
-    fun onBlockInteract(event: PlayerMoveEvent) {
-        Bukkit.getScheduler().runTask(AstraTowny.instance, Runnable { handlePlayerMove(event) })
+    fun onPlayerMove(event: PlayerMoveEvent) {
+        handlePlayerMove(event)
     }
 
     private fun handlePlayerMove(event: PlayerMoveEvent) {
         val player = event.player
-        val location = player.location
-        val currentTownBlock = TownManager.getTownBlock(WorldCoord(location.world, location.blockX, location.blockY))
+        val currentTownBlock = TownManager.getTownBlock(WorldCoord.parseWorldCoord(player.location))
 
-        // Пропустить, если игрок не перемещается между разными блоками
         if (event.from.blockX == event.to.blockX &&
             event.from.blockY == event.to.blockY &&
             event.from.blockZ == event.to.blockZ) {
@@ -41,10 +39,9 @@ class TownBlockMovePlayer : Listener {
         val currentTown = currentTownBlock?.town
         val lastTown = playerTownMap[player]
 
-        // Обновить сообщения и строку состояния, если город изменился
         if (currentTown != lastTown) {
             if (currentTown != null) {
-                if (sendTownMessageAlready.getOrDefault(player, false).not()) {
+                if (!sendTownMessageAlready.getOrDefault(player, false)) {
                     actionBarActive[player] = true
                     sendTitle(
                         player,
@@ -57,11 +54,13 @@ class TownBlockMovePlayer : Listener {
             } else {
                 actionBarActive[player] = false
                 sendActionBar(player, "")
+                sendTownMessageAlready[player] = false // <-- сброс при выходе из города
             }
 
-            // Обновить последний известный город игрока
             playerTownMap[player] = currentTown
+            sendTownMessageAlready[player] = false // <-- сброс при смене города
         }
+
     }
     fun sendTitle(player: Player, title: String, subtitle: String) {
         player.sendTitle(TextUtil.colorize(title), TextUtil.colorize(subtitle), 10, 20, 10)

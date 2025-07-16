@@ -10,13 +10,9 @@ import java.util.*
 object TranslateYML {
     private val translations = mutableMapOf<String, YamlConfiguration>()
 
-    init {
-        loadTranslations()
-    }
-
     fun getTranslations(): List<String> = translations.keys.toList()
 
-    private fun loadTranslations() {
+    public fun loadTranslations() {
         val folder = File("${AstraTowny.instance.dataFolder}/translate")
         if (!folder.exists()) folder.mkdirs()
 

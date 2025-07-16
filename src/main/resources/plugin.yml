@@ -2,7 +2,7 @@ name: AstraTowny
 version: '0.1'
 main: dev.loveeev.astratowny.AstraTowny
 api-version: '1.20'
-softdepend: ["PlaceholderAPI"]
+depend: [ PlaceholderAPI, Vault]
 commands:
   towny:
     aliases:
@@ -18,6 +18,9 @@ commands:
       - ta
       - tadmin
     permission: astratowny.admin
+  plot:
+    aliases:
+      - area
 
 permissions:
   astratowny.admin:

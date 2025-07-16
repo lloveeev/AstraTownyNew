@@ -36,6 +36,26 @@ class UnLoad {
                 }
             }
     }
+
+    fun unloadPlots() {
+        TownManager.towns.forEach { _, town ->
+            town.plots.forEach { townBlock, plot ->
+                SQL.getCon()?.use { connection ->
+                    val query = "REPLACE INTO ${SchemeSQL.tablePrefix}PLOTS (uuid, townBlock, name, owner, residents, status, price) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    connection.prepareStatement(query).use { statement ->
+                        statement.setString(1, plot.uuid.toString())
+                        statement.setString(2, townBlock.toString())
+                        statement.setString(3, plot.name)
+                        statement.setString(4, plot.owner?.playerName)
+                        statement.setString(5, handleToStringListt(plot.residents))
+                        statement.setString(6, plot.status.name)
+                        statement.setDouble(7, plot.price)
+                        statement.executeUpdate()
+                    }
+                }
+            }
+        }
+    }
     /*
     fun unloadTownBlocks() {
         TownManager.townBlocks.values.parallelStream().forEach { townBlock ->

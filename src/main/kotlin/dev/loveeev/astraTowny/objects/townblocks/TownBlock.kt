@@ -11,7 +11,7 @@ data class TownBlock(
 ) {
 
     override fun toString(): String {
-        return "x: $x z: $z"
+        return "${world.name}#$x#$z"
     }
 
     val isHomeBlock: Boolean

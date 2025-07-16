@@ -24,6 +24,17 @@ object SchemeSQL {
                             "towns VARCHAR(255))",
                     "Table NATIONS created successfully.")
 
+                createTableIfNotExists(connection, "${tablePrefix}PLOTS",
+                    "CREATE TABLE ${tablePrefix}PLOTS (" +
+                            "uuid CHAR(36) PRIMARY KEY," +
+                            "townBlock VARCHAR(255)," +
+                            "name VARCHAR(255)," +
+                            "owner VARCHAR(255)," +
+                            "residents VARCHAR(255)," +
+                            "status VARCHAR(255)," +
+                            "price DOUBLE)",
+                    "Table PLOTS created successfully.")
+
                 createTableIfNotExists(connection, "${tablePrefix}TOWNS",
                     "CREATE TABLE ${tablePrefix}TOWNS (" +
                             "uuid CHAR(36) PRIMARY KEY," +

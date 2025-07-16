@@ -434,7 +434,7 @@ object TownyUtil {
     /**
      * Deletes a town block from the system and database.
      *
-     * @param tb The town block to delete. (Квартал города, который нужно удалить.)
+     * @param tb The town block to delete. (ТаунБлок города, который нужно удалить.)
      * @return A TownyResponse indicating success or failure. (Ответ Towny, указывающий на успех или неудачу.)
      * @throws TownyException If there is an error during the deletion process. (Если произошла ошибка во время процесса удаления.)
      */
@@ -449,6 +449,9 @@ object TownyUtil {
                 return TownyResponse.failure("Resident failed save into DataBase")
             }
 
+
+            synchronized(tb.town.plots) { tb.town.plots.remove(tb) }
+
             synchronized(tb.town.townBlocks) {
                 if (!tb.isHomeBlock) {
                         tb.town.removeClaimedChunk(tb)
@@ -457,6 +460,7 @@ object TownyUtil {
                     tb.town.removeClaimedChunk(tb)
                 }
             }
+
 
             synchronized(TownManager.townBlocks) {
                 TownManager.townBlocks.remove(WorldCoord(tb.world, tb.x, tb.z))
@@ -766,19 +770,10 @@ object TownyUtil {
     }
 
     fun checkPermission(resident: Resident, s: String) {
-        println(resident.townRank?.name ?: "нету")
-        println(resident.nationRank?.name ?: "нету")
-        if (AstraTowny.defaultPermission.contains(s)) {
-            println("test")
-            return
-        }
+        if (AstraTowny.defaultPermission.contains(s)) return
 
-        if (resident.hasPermission(s)){
-            println("test1")
-            return
-        }
-        println("penis")
-        Messages.send(resident.getPlayer(), "permission")
+        if (resident.hasPermission(s)) return
+        Messages.send(resident.getPlayer() as Player, "permission")
         throw NoPermissionException(s)
     }
 

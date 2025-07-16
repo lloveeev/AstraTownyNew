@@ -5,6 +5,7 @@ import dev.loveeev.astratowny.objects.Rank
 import dev.loveeev.astratowny.objects.Resident
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.Coord
+import dev.loveeev.astratowny.objects.townblocks.Plot
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
 import dev.loveeev.astratowny.objects.townblocks.WorldCoord
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
@@ -21,6 +22,8 @@ object TownManager {
     val townBlocks = ConcurrentHashMap<WorldCoord, TownBlock>()
     val townRanks = ConcurrentHashMap<String, Rank>()
     val nationRanks = ConcurrentHashMap<String, Rank>()
+
+
 
     fun hasTownBlock(worldCoord: WorldCoord) = townBlocks.containsKey(worldCoord)
     fun hasTownBlock(worldCoord: TownBlock) = townBlocks.contains(worldCoord)
@@ -48,8 +51,8 @@ object TownManager {
 
     fun getTown(resident: Resident) = resident.town
     fun getTown(player: Player) = getResident(player)?.town
-    fun getTown(name: String): Town? = towns.values.find { it.name == name }
 
+    fun getTown(name: String): Town? = towns.values.find { it.name == name }
 
     fun getNation(player: Player) = getResident(player)?.nation
     fun getNation(resident: Resident) = resident.nation

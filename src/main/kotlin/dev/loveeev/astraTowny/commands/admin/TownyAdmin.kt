@@ -15,12 +15,12 @@ import dev.loveeev.astratowny.objects.Nation
 import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.objects.townblocks.TownBlock
 import dev.loveeev.utils.BukkitUtils
-import dev.loveeev.utils.ChatUtil
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabExecutor
 import org.bukkit.entity.Player
+import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -59,6 +59,10 @@ class TownyAdmin : TabExecutor {
     private fun fill(args: Array<out String>, sender: CommandSender) {
         val player = sender as? Player ?: run {
             Messages.send(sender, "message_console")
+            return
+        }
+        if (args.size < 2) {
+            Messages.send(sender, "args")
             return
         }
 
@@ -110,11 +114,39 @@ class TownyAdmin : TabExecutor {
                     "add" -> handleNationAdd(args, sender)
                     "delete" -> handleNationDelete(args, sender)
                     "kick" -> handleNationKick(args, sender)
+                    "withdraw" -> handleWithDrawCommandNation(args, sender)
+                    "deposit" -> handleDepostioCommandNation(args, sender)
                     else -> Messages.send(sender, "args")
                 }
             }
             else -> Messages.send(sender, "args")
         }
+    }
+
+    private fun handleDepostioCommandNation(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 4) {
+            Messages.send(sender, "args")
+            return
+        }
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        nation.balance -= args[3].toFloat()
+        Messages.send(sender, "success")
+    }
+
+    private fun handleWithDrawCommandNation(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 4) {
+            Messages.send(sender, "args")
+            return
+        }
+        val nation = TownManager.getNation(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        nation.balance += args[3].toFloat()
+        Messages.send(sender, "success")
     }
 
     private fun handleNationSet(args: Array<out String>, sender: CommandSender) {
@@ -129,7 +161,6 @@ class TownyAdmin : TabExecutor {
 
         when (args[3]) {
             "capital" -> setNationCapital(args, sender, nation)
-            "king" -> setNationKing(args, sender, nation)
             "mapcolor" -> {
                 nation.mapColor = args[4]
                 Messages.send(sender, "success")
@@ -156,21 +187,15 @@ class TownyAdmin : TabExecutor {
             Messages.send(sender, "Город не состоит в нации")
             return
         }
+        if (nation.capital != null) {
+            nation.capital?.mayor?.assignNationRank(null)
+        }
         nation.capital = town
-        Messages.send(sender, "success")
-    }
+        TownyUtil.setKing(town.mayor ?: run {
+            Messages.send(sender, "ОШИБКА")
+            return
+            })
 
-    private fun setNationKing(args: Array<out String>, sender: CommandSender, nation: Nation) {
-        val resident = TownManager.getResident(args[4]) ?: run {
-            Messages.send(sender,"Не существует такого игрока")
-            return
-        }
-        if (resident.nation != nation) {
-            Messages.send(sender, "Игрок состоит в другой нации")
-            return
-        }
-        nation.capital?.mayor?.assignNationRank(null)
-        TownyUtil.setKing(resident)
         Messages.send(sender, "success")
     }
 
@@ -232,7 +257,12 @@ class TownyAdmin : TabExecutor {
     }
 
     private fun resetBanks(args: Array<out String>, sender: CommandSender) {
-        // Реализация сброса банков может быть добавлена здесь
+        TownManager.towns.forEach { _, town ->
+            town.balance = 0f
+        }
+        TownManager.nations.forEach { _, nation ->
+            nation.balance = 0.0
+        }
     }
 
     private fun town(args: Array<out String>, sender: CommandSender) {
@@ -256,11 +286,82 @@ class TownyAdmin : TabExecutor {
                     "add" -> handleTownAdd(args, sender)
                     "delete" -> handleTownDelete(args, sender)
                     "spawn" -> handleTownSpawn(args, sender)
+                    "withdraw" -> handleWithDrawCommand(args, sender)
+                    "deposit" -> handleDepostioCommand(args, sender)
+                    "kick" -> handleKickCommand(args, sender)
                     else -> Messages.send(sender, "args")
                 }
             }
             else -> Messages.send(sender, "args")
         }
+    }
+
+    private fun handleKickCommand(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 3) {
+            Messages.send(sender, "args")
+            return
+        }
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        val resident = TownManager.getResident(args[3]) ?: run {
+            Messages.send(sender, "Такого игрока не существует")
+            return
+        }
+
+        if (resident.town == null) {
+            Messages.send(sender, "У игроока итак нет города")
+            return
+        }
+
+        if (resident.town != town) {
+            Messages.send(sender, "Игрок принадлежит другому городу")
+            return
+        }
+
+        if (resident.isMayor()) {
+            Messages.send(sender, "town.kick.not_mayor")
+            return
+        }
+
+
+        if (town.hasNation) {
+            if (resident.isKing()) {
+                Messages.send(sender, "Нельзя кикнуть короля")
+                return
+            }
+
+            Messages.send(sender, TownyUtil.removeResidentInNation(resident).message)
+        }
+        Messages.send(sender, TownyUtil.removeResidentInTown(resident).message)
+    }
+
+
+    private fun handleWithDrawCommand(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 4) {
+            Messages.send(sender, "args")
+            return
+        }
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        town.balance -= args[3].toFloat()
+        Messages.send(sender, "success")
+    }
+
+    private fun handleDepostioCommand(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 4) {
+            Messages.send(sender, "args")
+            return
+        }
+        val town = TownManager.getTown(args[1]) ?: run {
+            Messages.send(sender, "Такого города не существует")
+            return
+        }
+        town.balance += args[3].toFloat()
+        Messages.send(sender, "success")
     }
 
     private fun handleTownSet(args: Array<out String>, sender: CommandSender) {
@@ -283,6 +384,11 @@ class TownyAdmin : TabExecutor {
                 town.name = args[4]
                 Messages.send(sender, "success")
             }
+            "spawn" -> {
+                val player = sender as Player
+                town.spawnLocation = player.location
+                Messages.send(sender, "success")
+            }
             "homeblock" -> setTownHomeBlock(args, sender, town)
         }
     }
@@ -296,6 +402,7 @@ class TownyAdmin : TabExecutor {
             Messages.send(sender, "У игрок нет города")
             return
         }
+        town.mayor = resident
         TownyUtil.setMayor(resident)
         Messages.send(sender, "success")
     }
@@ -314,6 +421,10 @@ class TownyAdmin : TabExecutor {
     }
 
     private fun handleTownAdd(args: Array<out String>, sender: CommandSender) {
+        if (args.size < 3) {
+            Messages.send(sender, "args")
+            return
+        }
         val town = TownManager.getTown(args[1]) ?: run {
             Messages.send(sender, "Такого города не существует")
             return
@@ -358,6 +469,14 @@ class TownyAdmin : TabExecutor {
     private fun reload(args: Array<out String>, sender: CommandSender) {
         AstraTowny.instance.reloadConfig()
         TranslateYML.reload()
+        val configFile = File(AstraTowny.instance.dataFolder, "settings/rank.yml")
+        if (!configFile.exists()) {
+            AstraTowny.instance.saveResource("settings/rank.yml", false)
+        }
+        val (townRanks, nationRanks) = AstraTowny.instance.loadRanks(configFile)
+        TownManager.townRanks.putAll(townRanks)
+        TownManager.nationRanks.putAll(nationRanks)
+
         Messages.send(sender, "Конфигурация перезагружена.")
     }
 
@@ -390,10 +509,10 @@ class TownyAdmin : TabExecutor {
             3 -> {
                 when {
                     args[0].equals("nation", ignoreCase = true) && TownManager.getNation(args[1]) != null -> {
-                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "ranksettings", "set", "withdraw", "toggle", "fillcolor"))
+                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "set", "withdraw", "toggle"))
                     }
                     args[0].equals("town", ignoreCase = true) && TownManager.getTown(args[1]) != null -> {
-                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "ranksettings", "set", "spawn", "withdraw", "toggle", "forcemerge"))
+                        getPartialMatches(args[2], listOf("add", "delete", "deposit", "kick", "set", "spawn", "withdraw", "toggle"))
                     }
                     else -> emptyList()
                 }

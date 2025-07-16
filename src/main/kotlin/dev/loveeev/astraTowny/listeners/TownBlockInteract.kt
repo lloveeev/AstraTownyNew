@@ -18,9 +18,9 @@ class TownBlockInteract : Listener {
     @EventHandler
     fun onPlayerInteract(event: PlayerInteractEvent) {
         val player = event.player
-        //if (!TownManager.getResident(player).hasTownPermission("OP_BUILD") || !player.isOp) {
-        //    return
-        //}
+        if (!TownManager.getResident(player)!!.hasPermission("OP_BUILD") || !player.isOp) {
+            return
+        }
 
         event.clickedBlock?.let { block ->
             if (canPlayerInteract(player, block)) {
@@ -34,9 +34,9 @@ class TownBlockInteract : Listener {
     fun onEntityDamageByEntity(event: EntityDamageByEntityEvent) {
         if (event.damager is Player) {
             val player = event.damager as Player
-            //if (!TownManager.getInstance().getResident(player).hasTownPermission("OP_BUILD") || !player.isOp) {
-            //    return
-            //}
+            if (!TownManager.getResident(player)!!.hasPermission("OP_BUILD") || !player.isOp) {
+                return
+            }
 
             if (event.entity is Animals) {
                 val chunk = event.entity.location.block

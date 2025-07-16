@@ -1,9 +1,12 @@
 package dev.loveeev.astratowny.objects
 
+import dev.loveeev.astratowny.AstraTowny
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.util.UUID
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
+import org.bukkit.OfflinePlayer
 
 data class Resident(
     val playerName: String,
@@ -11,7 +14,7 @@ data class Resident(
     var town: Town? = null,
     var nation: Nation? = null,
     var language: String = "ru",
-    val invitations: ObjectArrayList<String> = ObjectArrayList(),
+    val invitations: ObjectOpenHashSet<String> = ObjectOpenHashSet(),
     var townRank: Rank? = null, // Городской ранг
     var nationRank: Rank? = null // Национальный ранг
 ) {
@@ -23,8 +26,8 @@ data class Resident(
     fun isMayor() = townRank?.hasPermission("ASTRATOWN_MAYOR") ?: false
 
 
-    fun getPlayer() : Player {
-        return Bukkit.getOfflinePlayer(playerName) as Player
+    fun getPlayer() : OfflinePlayer {
+        return Bukkit.getOfflinePlayer(uuid)
     }
 
     override fun hashCode(): Int {
@@ -32,7 +35,7 @@ data class Resident(
     }
 
     fun hasPermission(permission: String): Boolean {
-        return (townRank?.hasPermission(permission) == true) || (nationRank?.hasPermission(permission) == true)
+        return (townRank?.hasPermission(permission) == true) || (nationRank?.hasPermission(permission) == true) || (AstraTowny.defaultPermission.contains(permission))
     }
 
     fun addInvitation(townName: String) = invitations.add(townName)
@@ -42,10 +45,19 @@ data class Resident(
         println("Resident.toString() called for $playerName]")
         return "Resident(name=$playerName, town=${town?.name ?: "нету"}, nation=${nation?.name ?: "нету"}, language='$language')"
     }
+    fun sendMessage(message: String) {
+        if (isOnline) {
+            getPlayer().player?.sendMessage(message)
+        }
+    }
 
     fun clear() {
         nation = null
         town = null
+        townRank = null
+        nationRank = null
+        invitations.clear()
+
     }
 
     override fun equals(other: Any?): Boolean {

@@ -1,12 +1,12 @@
 package dev.loveeev.astratowny.commands.main
 
 import dev.loveeev.astratowny.chat.Messages
+import dev.loveeev.astratowny.commands.NationLists
 import dev.loveeev.astratowny.commands.api.AstraCommandsAddonApi
 import dev.loveeev.astratowny.commands.api.BaseCommandType
 import dev.loveeev.astratowny.manager.TownManager
 import dev.loveeev.astratowny.objects.Nation
 import dev.loveeev.astratowny.objects.Resident
-import dev.loveeev.astratowny.objects.Town
 import dev.loveeev.astratowny.utils.TownyUtil
 import dev.loveeev.utils.TextUtil
 import me.clip.placeholderapi.PlaceholderAPI
@@ -53,6 +53,7 @@ class NationCommand : TabExecutor {
                 "set" -> set(args, resident, sender)
                 "leave" -> leave(args, resident, sender)
                 "rank" -> handleNationRank(args,resident, sender)
+                "list" -> NationLists().handleListCommand(sender, args)
                 else -> {
                     val nation = TownManager.getNation(args[0])
                     if (nation != null) {
@@ -75,15 +76,15 @@ class NationCommand : TabExecutor {
             return
         }
 
-        val action = args[1].lowercase() // Действие: give, remove, list
-        val rankName = args[2].lowercase() // Название ранга
 
+        val action = args[1].lowercase() // Действие: give, remove, list
         when (action) {
             "give", "add" -> {
                 if (args.size < 4) {
                     Messages.send(sender, "rank.give.error")
                     return
                 }
+                val rankName = args[2].lowercase() // Название ранга
                 TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_RANK_GIVE")
                 TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_RANK_GIVE_$rankName")
                 val targetPlayerName = args[3]
@@ -94,8 +95,22 @@ class NationCommand : TabExecutor {
                 }
                 val targetResident = TownManager.getResident(targetPlayer.uniqueId)
 
+                if (targetResident == resident) {
+                    Messages.send(sender, "rank.give.self")
+                    return
+                }
+
                 val rank = TownManager.nationRanks[rankName]
                 if (rank != null) {
+                    if ((resident.nationRank?.priority ?: 99) >= rank.priority) {
+                        Messages.send(sender, "permission")
+                        return
+                    }
+
+                    if ((targetResident?.nationRank?.priority ?: 99) <= (resident.nationRank?.priority ?: 99)) {
+                        Messages.send(sender, "rank.give.priority")
+                        return
+                    }
                     targetResident?.assignNationRank(rank)
                     Messages.send(sender, "rank.give.success")
                 } else {
@@ -104,14 +119,54 @@ class NationCommand : TabExecutor {
             }
 
             "remove" -> {
+                if (args.size < 4) {
+                    Messages.send(sender, "rank.remove.error")
+                    return
+                }
+
+                val rankName = args[2].lowercase() // Название ранга
+
                 TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_RANK_REMOVE")
-                if (resident.nationRank?.name == rankName) {
-                    resident.nationRank = null
+                TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_RANK_REMOVE_$rankName")
+
+                val targetPlayerName = args[3]
+                val targetPlayer = Bukkit.getPlayerExact(targetPlayerName)
+                if (targetPlayer == null) {
+                    Messages.send(sender, "rank.remove.player_not_found")
+                    return
+                }
+
+                val targetResident = TownManager.getResident(targetPlayer.uniqueId)
+
+                if (targetResident == resident) {
+                    Messages.send(sender, "rank.remove.self")
+                    return
+                }
+
+                val rank = TownManager.nationRanks[rankName]
+                if (rank != null) {
+                    if ((resident.nationRank?.priority ?: 99) >= rank.priority) {
+                        Messages.send(sender, "permission")
+                        return
+                    }
+
+                    if (targetResident?.nationRank?.name != rank.name) {
+                        Messages.send(sender, "rank.remove.no_rank")
+                        return
+                    }
+
+                    if ((targetResident.nationRank?.priority ?: 99) <= (resident.nationRank?.priority ?: 99)) {
+                        Messages.send(sender, "rank.remove.priority")
+                        return
+                    }
+
+                    targetResident.nationRank = null
                     Messages.send(sender, "rank.remove.success")
                 } else {
-                    Messages.send(sender, "rank.remove.no_rank")
+                    Messages.send(sender, "rank.remove.rank_not_found")
                 }
             }
+
 
             "list" -> {
                 Messages.send(sender, "rank.list.nation_ranks")
@@ -166,13 +221,19 @@ class NationCommand : TabExecutor {
             }
 
             3 -> when {
-                args[1] in listOf("add", "remove") -> resident?.town?.residents
-                    ?.map { it.playerName }
-                    ?.filter { it.startsWith(args[2], true) } ?: emptyList()
-                args[1] == "rank" -> TownManager.nationRanks.keys().toList()
+                args[0] == "rank" && args[1] in listOf("add", "remove", "give")  -> TownManager.nationRanks.keys().toList()
                     .filter { it.startsWith(args[2], true) }
                 else -> emptyList()
             }
+
+            4 -> when {
+                args[0] == "rank" && args[1] in listOf("add", "remove", "give") -> resident?.nation?.residents
+                    ?.map { it.playerName }
+                    ?.filter { it.startsWith(args[2], true) } ?: emptyList()
+                else -> emptyList()
+            }
+
+
 
             else -> emptyList()
         }
@@ -373,22 +434,16 @@ class NationCommand : TabExecutor {
             Messages.send(player, "nation.create.command")
             return
         }
-        println("permtest1")
         TownyUtil.checkPermission(resident, "ASTRATOWN_NATION_CREATE")
-        println("permtest2")
         if (!resident.hasTown) {
             Messages.send(player, "nation.create.need_town")
             return
         }
 
         if (!resident.isMayor()) {
-            println("test")
-            println(resident?.townRank?.permissions)
-            println("permtest3")
             Messages.send(player, "permission")
             return
         }
-        println("permtest4")
 
         if (resident.hasNation) {
             Messages.send(player, "nation.join.already_in_nation")
