@@ -49,4 +49,21 @@ data class Nation(
     fun removeResident(resident: Resident) {
         residents.remove(resident)
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Nation
+
+        if (balance != other.balance) return false
+        if (name != other.name) return false
+        if (uuid != other.uuid) return false
+        if (capital != other.capital) return false
+        if (mapColor != other.mapColor) return false
+        if (towns != other.towns) return false
+        if (residents != other.residents) return false
+
+        return true
+    }
 }
